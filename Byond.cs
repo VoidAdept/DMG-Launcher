@@ -6,7 +6,9 @@ namespace DMGLauncher;
 
 public record World(string Url, string Status, List<string> Players)
 {
-    public string Name => Status != "" ? Status : Url["byond://".Length..];
+    public string Address => Url["byond://".Length..].TrimEnd('/');
+    // The hub has no per-world name, only the status text the server publishes.
+    public string Name => Status != "" ? $"{Status} · {Address}" : Address;
 }
 
 // Everything BYOND-related. Joining always goes through BYOND's own byond:// handler,
@@ -53,14 +55,15 @@ public static class Byond
 
     public static void OpenUrl(string url) => Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
 
-    public static void ShowPager() { if (PagerExe is { } exe) Process.Start(exe)?.Dispose(); }
+    // Shell-execute like Explorer does: byond.exe can run elevated, and a plain CreateProcess fails with error 740.
+    public static void ShowPager() { if (PagerExe is { } exe) OpenUrl(exe); }
 
     public static async Task<bool> EnsureRunning()
     {
         for (var i = 0; i < MaxLaunchTries && !IsRunning; i++)
         {
             try { ShowPager(); } catch (Exception ex) { Trace.WriteLine($"byond.exe start failed: {ex.Message}"); }
-            for (var s = 0; s < 10 && !IsRunning; s++) await Task.Delay(1000);
+            for (var s = 0; s < 15 && !IsRunning; s++) await Task.Delay(1000);
         }
         return IsRunning;
     }

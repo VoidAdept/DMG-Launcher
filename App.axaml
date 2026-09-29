@@ -2,12 +2,16 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="DMGLauncher.App"
              RequestedThemeVariant="Dark">
+  <Application.Resources>
+    <!-- DMG red drives Fluent's accent buttons, tab underline and checkboxes -->
+    <Color x:Key="SystemAccentColor">#902631</Color>
+    <Color x:Key="SystemAccentColorDark1">#7A1F29</Color>
+    <Color x:Key="SystemAccentColorDark2">#641922</Color>
+    <Color x:Key="SystemAccentColorLight1">#A8323E</Color>
+    <Color x:Key="SystemAccentColorLight2">#BE4250</Color>
+  </Application.Resources>
   <Application.Styles>
     <FluentTheme />
-    <Style Selector="Button.accent">
-      <Setter Property="Background" Value="#902631" />
-      <Setter Property="Foreground" Value="White" />
-    </Style>
     <Style Selector="TextBlock.title">
       <Setter Property="FontSize" Value="26" />
       <Setter Property="FontWeight" Value="Bold" />

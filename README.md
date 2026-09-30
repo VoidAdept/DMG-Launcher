@@ -3,7 +3,7 @@
 Third-party launcher for [Duel Monsters Genesis](https://www.byond.com/games/EternalDuelistSoul/DuelMonstersGenesis) (Windows).
 
 - Checks GitHub Releases for a newer launcher and offers to update itself.
-- Makes sure BYOND is installed (offers the official installer) and running (3 tries, then quits).
+- Makes sure BYOND is installed (otherwise sends you to the BYOND download page) and running (3 tries, then quits); closes when BYOND closes.
 - Mirrors the BYOND pager's login. The launcher never asks for or stores your password; "Create an Account" opens BYOND's sign-up page.
 - **Server List**: DMG servers from the BYOND hub, with player counts and a Join button.
 - **Friends**: track BYOND keys and see which DMG server they're on, with a Join button.
@@ -16,6 +16,14 @@ Joining hands the server's `byond://` address to BYOND, exactly like the hub's P
 - General online status for friends (BYOND has no public API for it; friends show as online only while on a DMG server).
 - Logging in to BYOND from inside the launcher.
 - Linux / macOS.
+
+## Art and fonts
+Everything in `Assets/` comes from the DMG team's own files; no generated art.
+- `logo.png` / `logo.ico`: the DMG 20th logo.
+- `background.jpg`: `icons/skin/main/skin_logo_login_bg.png` from the game, tinted blue-purple.
+- `holactie.png`: the login-screen art chosen in the launcher design.
+- `Fonts/`: the card fonts packed with the game (`icons/skin/rgui/fonts`), renamed. Their name tables were trimmed to the
+  Windows English records only, because Avalonia crashes on names that exist in some languages but not others.
 
 ## Build
 ```

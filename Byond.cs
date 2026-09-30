@@ -18,14 +18,21 @@ public static class Byond
     public const string HubText = "https://www.byond.com/games/EternalDuelistSoul/DuelMonstersGenesis?format=text";
     public const string Banner = "https://www.byond.com/games/banners/86639.png";
     public const string JoinPage = "https://secure.byond.com/Join";
+    public const string DownloadPage = "https://www.byond.com/download/";
     public const int MaxLaunchTries = 3;
 
     public static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
     static Byond() => Http.DefaultRequestHeaders.UserAgent.ParseAdd($"DMG-Launcher/{Updater.CurrentText}");
 
+    public static string? InstallDir =>
+        Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Dantom\BYOND", "installpath", null) as string;
+
     public static string? PagerExe =>
-        Registry.GetValue(@"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Dantom\BYOND", "installpath", null) is string dir
-        && File.Exists(Path.Combine(dir, "bin", "byond.exe")) ? Path.Combine(dir, "bin", "byond.exe") : null;
+        InstallDir is { } dir && File.Exists(Path.Combine(dir, "bin", "byond.exe")) ? Path.Combine(dir, "bin", "byond.exe") : null;
+
+    // byond.exe carries "5.0.516.1687"; BYOND itself calls that 516.1687.
+    public static string? ClientVersion =>
+        PagerExe is { } exe && FileVersionInfo.GetVersionInfo(exe) is { FileBuildPart: > 0 } v ? $"{v.FileBuildPart}.{v.FilePrivatePart}" : null;
 
     public static bool IsRunning
     {
@@ -66,17 +73,6 @@ public static class Byond
             for (var s = 0; s < 15 && !IsRunning; s++) await Task.Delay(1000);
         }
         return IsRunning;
-    }
-
-    // Downloads the current official installer and runs it normally (Windows shows its own UAC prompt).
-    public static async Task Install()
-    {
-        var ver = (await Http.GetStringAsync("https://www.byond.com/download/version.txt")).Trim();
-        if (!Regex.IsMatch(ver, @"^\d+\.\d+$")) throw new InvalidDataException($"unexpected BYOND version '{ver}'");
-        var file = Path.Combine(Path.GetTempPath(), $"{ver}_byond.exe");
-        await File.WriteAllBytesAsync(file, await Http.GetByteArrayAsync($"https://www.byond.com/download/build/{ver.Split('.')[0]}/{ver}_byond.exe"));
-        using var p = Process.Start(new ProcessStartInfo(file) { UseShellExecute = true });
-        if (p != null) await p.WaitForExitAsync();
     }
 
     public static async Task<List<World>> FetchWorlds() => ParseWorlds(await Http.GetStringAsync(HubText));

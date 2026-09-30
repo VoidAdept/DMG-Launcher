@@ -1,96 +1,318 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="using:DMGLauncher"
         x:Class="DMGLauncher.MainWindow"
-        Title="DMG Launcher" Width="960" Height="620" MinWidth="720" MinHeight="480"
-        WindowStartupLocation="CenterScreen" Background="#14121A">
-  <Grid RowDefinitions="Auto,*">
-    <!-- Header -->
-    <Border Background="#1E1A26" Padding="16,10" BorderBrush="#902631" BorderThickness="0,0,0,2">
-      <Grid ColumnDefinitions="Auto,*,Auto">
-        <Image Name="Banner" Height="56" Margin="0,0,16,0" />
-        <TextBlock Grid.Column="1" Classes="title" Text="Duel Monsters Genesis" VerticalAlignment="Center" />
-        <TextBlock Grid.Column="2" Name="HeaderKey" VerticalAlignment="Center" Opacity="0.8" />
-      </Grid>
-    </Border>
+        Title="DMG Launcher" Icon="/Assets/logo.png"
+        Width="1120" Height="640" CanResize="False" SystemDecorations="None"
+        WindowStartupLocation="CenterScreen" Background="#07060D"
+        Foreground="{StaticResource Text}" FontFamily="{StaticResource TextFont}" FontSize="14">
+  <Panel PointerPressed="Root_PointerPressed" ClipToBounds="True">
+    <Image Source="/Assets/background.jpg" Stretch="UniformToFill" />
 
-    <Panel Grid.Row="1">
-      <!-- Startup checks -->
-      <StackPanel Name="StartupPanel" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" Width="420">
-        <TextBlock Name="StartupText" HorizontalAlignment="Center" TextWrapping="Wrap" Text="Starting…" />
-        <ProgressBar IsIndeterminate="True" />
+    <!-- ============ Startup checks ============ -->
+    <Canvas Name="StartupView">
+      <Image Classes="float" Source="/Assets/holactie.png" Canvas.Left="291" Canvas.Top="-81" Width="934" Height="753" Stretch="Uniform">
+        <Image.RenderTransform><TranslateTransform /></Image.RenderTransform>
+        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.4" /></Image.Effect>
+      </Image>
+      <Image Source="/Assets/streaks.png" Canvas.Left="0" Canvas.Top="0" Width="1120" Height="640" Stretch="UniformToFill" ClipToBounds="True" />
+      <StackPanel Orientation="Horizontal" Spacing="10" Canvas.Left="30" Canvas.Top="24">
+        <Image Source="/Assets/logo-trim.png" Width="120" Height="136" />
+        <StackPanel VerticalAlignment="Center" Spacing="0">
+          <TextBlock Classes="wmgold" Text="Duel Monsters" />
+          <local:OutlinedText Text="GENESIS" Font="{StaticResource NameFont}" FontSize="42" LetterSpacing="8">
+        <local:OutlinedText.Effect><DropShadowEffect BlurRadius="6" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.85" /></local:OutlinedText.Effect>
+      </local:OutlinedText>
+        </StackPanel>
+      </StackPanel>
+      <Rectangle Width="1120" Height="640" Fill="#B805040D" />
+      <StackPanel Canvas.Left="310" Canvas.Bottom="40" Width="500" Spacing="8">
+        <TextBlock Name="StartupText" Classes="muted" HorizontalAlignment="Center" Text="Starting…" />
+        <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" CornerRadius="0" Foreground="#C8972F" Background="#14FFFFFF" />
+      </StackPanel>
+    </Canvas>
+
+    <!-- ============ Log In (mirrors the BYOND pager) ============ -->
+    <Canvas Name="LoginView" IsVisible="False">
+      <Image Classes="float" Source="/Assets/holactie.png" Canvas.Left="291" Canvas.Top="-81" Width="934" Height="753" Stretch="Uniform">
+        <Image.RenderTransform><TranslateTransform /></Image.RenderTransform>
+        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.4" /></Image.Effect>
+      </Image>
+      <Image Source="/Assets/streaks.png" Canvas.Left="0" Canvas.Top="0" Width="1120" Height="640" Stretch="UniformToFill" ClipToBounds="True" />
+      <Rectangle Width="1120" Height="640">
+        <Rectangle.Fill>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Offset="0" Color="#F007060F" />
+            <GradientStop Offset="0.34" Color="#D107060F" />
+            <GradientStop Offset="0.58" Color="#4007060F" />
+            <GradientStop Offset="0.72" Color="#0007060F" />
+          </LinearGradientBrush>
+        </Rectangle.Fill>
+      </Rectangle>
+      <Rectangle Canvas.Bottom="0" Width="1120" Height="190">
+        <Rectangle.Fill>
+          <LinearGradientBrush StartPoint="0%,100%" EndPoint="0%,0%">
+            <GradientStop Offset="0" Color="#D906050D" />
+            <GradientStop Offset="1" Color="#0006050D" />
+          </LinearGradientBrush>
+        </Rectangle.Fill>
+      </Rectangle>
+      <StackPanel Orientation="Horizontal" Spacing="10" Canvas.Left="30" Canvas.Top="24">
+        <Image Source="/Assets/logo-trim.png" Width="120" Height="136" />
+        <StackPanel VerticalAlignment="Center" Spacing="0">
+          <TextBlock Classes="wmgold" Text="Duel Monsters" />
+          <local:OutlinedText Text="GENESIS" Font="{StaticResource NameFont}" FontSize="42" LetterSpacing="8">
+        <local:OutlinedText.Effect><DropShadowEffect BlurRadius="6" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.85" /></local:OutlinedText.Effect>
+      </local:OutlinedText>
+        </StackPanel>
       </StackPanel>
 
-      <!-- Login (mirrors the BYOND pager) -->
-      <Border Name="LoginPanel" IsVisible="False" HorizontalAlignment="Center" VerticalAlignment="Center"
-              Width="420" Padding="24" CornerRadius="8" Background="#1E1A26">
-        <StackPanel Spacing="12">
-          <TextBlock Classes="title" Text="BYOND Account" />
-          <TextBlock Name="LoginStatus" TextWrapping="Wrap" />
-          <Button Name="ContinueButton" Classes="accent" Content="Continue" HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center" Click="Continue_Click" />
-          <Button Name="SignInButton" Content="Sign in with BYOND" HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center" Click="SignIn_Click" />
-          <Button Content="Create an Account" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
-                  Click="CreateAccount_Click" />
-          <TextBlock FontSize="11" Opacity="0.6" TextWrapping="Wrap"
-                     Text="The launcher never asks for your password. Sign in through the BYOND pager; games are joined as whichever key BYOND is signed in as." />
-        </StackPanel>
-      </Border>
+      <StackPanel Canvas.Left="30" Canvas.Top="176" Width="366">
+        <Grid ColumnDefinitions="Auto,*" Margin="0,0,0,18">
+          <TextBlock Classes="h1" Text="Log In" />
+          <Border Grid.Column="1" Height="1" Background="#47E0B458" VerticalAlignment="Center" Margin="14,0,0,0" />
+        </Grid>
+        <TextBlock Classes="bold" FontSize="14" Text="BYOND Key:" Margin="0,0,0,6" />
+        <Panel>
+          <TextBox Name="KeyBox" Classes="field" IsReadOnly="True" Padding="12,0,40,0" />
+          <Path Name="KeyCheck" Data="M3.5,9.5 L7,13 L14.5,5" Stroke="#7FCF8A" StrokeThickness="2"
+                Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
+        </Panel>
+        <WrapPanel Margin="0,6,0,0">
+          <TextBlock Name="KeySource" Classes="muted" Margin="0,0,4,0" />
+          <Button Name="PagerLink" Classes="link" FontSize="13" Click="SignIn_Click" />
+        </WrapPanel>
+        <Border Margin="0,16,0,0" Padding="14,12" Background="#CC0E0C1C" BorderBrush="{StaticResource RowBorder}" BorderThickness="1">
+          <TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="19" Foreground="#CFC4B8"
+                     Text="DMG Launcher will never ask you for your BYOND password. All sign-ins are handled by BYOND." />
+        </Border>
+        <CheckBox Name="UpdatesOnStartLogin" Margin="0,10,0,0" FontFamily="{StaticResource TextBoldFont}"
+                  Content="Check for launcher updates on start" IsCheckedChanged="UpdatesOnStart_Changed" />
+        <Button Name="ContinueButton" Classes="cta" AutomationProperties.Name="Log in" Height="52" Margin="0,16,0,0" HorizontalAlignment="Stretch" Click="Continue_Click">
+          <Grid ColumnDefinitions="*,58">
+            <TextBlock Text="LOG IN" FontSize="22" LetterSpacing="3" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            <Border Grid.Column="1" Classes="ctaseg">
+              <Grid Width="28" Height="28">
+                <Ellipse Width="22" Height="22" Stroke="#1C1206" StrokeThickness="2" />
+                <Path Data="M10,14 L18,14 M14.5,10 L18.5,14 L14.5,18" Stroke="#1C1206" StrokeThickness="2" />
+              </Grid>
+            </Border>
+          </Grid>
+        </Button>
+      </StackPanel>
 
-      <!-- Main menu -->
-      <TabControl Name="MainTabs" IsVisible="False" Margin="12,4">
-        <TabItem Header="Server List">
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,8">
-              <Button Content="Refresh" Click="Refresh_Click" />
-              <TextBlock Name="ServerStatus" VerticalAlignment="Center" Opacity="0.7" />
-            </StackPanel>
-            <ScrollViewer><StackPanel Name="ServerRows" Spacing="6" /></ScrollViewer>
-          </DockPanel>
-        </TabItem>
-
-        <TabItem Header="Friends">
-          <DockPanel>
-            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,8">
-              <TextBox Name="FriendInput" Watermark="BYOND key" Width="260" KeyDown="FriendInput_KeyDown" />
-              <Button Content="Add Friend" Click="AddFriend_Click" />
-              <TextBlock Name="FriendStatus" VerticalAlignment="Center" Opacity="0.7" />
-            </StackPanel>
-            <TextBlock DockPanel.Dock="Bottom" FontSize="11" Opacity="0.6" Margin="0,8" TextWrapping="Wrap"
-                       Text="BYOND doesn't publish general online status, so friends show as online only while they're on a DMG server. Status refreshes with the server list." />
-            <ScrollViewer><StackPanel Name="FriendRows" Spacing="6" /></ScrollViewer>
-          </DockPanel>
-        </TabItem>
-
-        <TabItem Header="Options">
-          <StackPanel Spacing="12" Margin="0,8" HorizontalAlignment="Left" Width="460">
-            <TextBlock Name="VersionText" />
-            <TextBlock Name="KeyText" />
-            <CheckBox Name="UpdatesOnStart" Content="Check for launcher updates on start" IsCheckedChanged="UpdatesOnStart_Changed" />
-            <StackPanel Orientation="Horizontal" Spacing="12">
-              <Button Content="Check for Updates" Click="CheckUpdates_Click" />
-              <TextBlock Name="UpdateStatus" VerticalAlignment="Center" Opacity="0.7" />
-            </StackPanel>
-            <Button Content="Reset Settings" Click="ResetSettings_Click" />
-            <Button Content="Clear Stored Data" Click="ClearData_Click" />
-            <TextBlock Name="OptionsStatus" Opacity="0.7" TextWrapping="Wrap" />
+      <StackPanel Canvas.Right="30" Canvas.Bottom="88" Spacing="4">
+        <StackPanel.Effect><DropShadowEffect BlurRadius="8" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.9" /></StackPanel.Effect>
+        <TextBlock Classes="name" FontSize="22" HorizontalAlignment="Right" Text="Don't have a BYOND account?" />
+        <Button Classes="link" AutomationProperties.Name="Create a BYOND account" HorizontalAlignment="Right" FontFamily="{StaticResource NameFont}" FontSize="19" Click="CreateAccount_Click">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="Create one now!" VerticalAlignment="Center" />
+            <Grid Width="24" Height="24">
+              <Ellipse Width="20" Height="20" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8" />
+              <Path Data="M8,12 L15,12 M12.5,8.5 L16,12 L12.5,15.5" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.8" />
+            </Grid>
           </StackPanel>
-        </TabItem>
-      </TabControl>
+        </Button>
+      </StackPanel>
+
+      <TextBlock Canvas.Right="30" Canvas.Bottom="24" Width="640" TextAlignment="Right" TextWrapping="Wrap"
+                 FontSize="11" LineHeight="16.5" Foreground="#CFC4B8">
+        <TextBlock.Effect><DropShadowEffect BlurRadius="3" OffsetX="0" OffsetY="0" Color="#05040D" Opacity="1" /></TextBlock.Effect>
+        <Run FontStyle="Italic" Text="Duel Monsters Genesis" /><Run Text=" is a 100% free fan game, not affiliated with Konami® or the Yu-Gi-Oh! Trading Card Game®. &quot;Yu-Gi-Oh!&quot; and all related names, characters and images are the property of Konami Corporation® and Kazuki Takahashi©. BYOND is a trademark of BYOND Software. All other respective artworks and resources belong to their respective owners." />
+      </TextBlock>
+
+      <StackPanel Canvas.Left="30" Canvas.Bottom="24" Orientation="Horizontal" Spacing="12">
+        <Button Classes="icon" Foreground="{StaticResource Gold}" ToolTip.Tip="Options" AutomationProperties.Name="Options" Click="Gear_Click">
+          <Grid Width="24" Height="24">
+            <Ellipse Width="6.4" Height="6.4" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.6" />
+            <Path Data="M12,2.5 L12,5.1 M12,18.9 L12,21.5 M4.6,4.6 L6.5,6.5 M17.5,17.5 L19.4,19.4 M2.5,12 L5.1,12 M18.9,12 L21.5,12 M4.6,19.4 L6.5,17.5 M17.5,6.5 L19.4,4.6"
+                  Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.6" />
+          </Grid>
+        </Button>
+        <TextBlock Name="LoginVersion" FontSize="12" Foreground="#8F847A" VerticalAlignment="Center" />
+      </StackPanel>
+    </Canvas>
+
+    <!-- ============ Main menu ============ -->
+    <Panel Name="MainView" IsVisible="False">
+      <Rectangle>
+        <Rectangle.Fill>
+          <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,0%">
+            <GradientStop Offset="0" Color="#F507060F" />
+            <GradientStop Offset="0.27" Color="#E607060F" />
+            <GradientStop Offset="0.6" Color="#8C07060F" />
+            <GradientStop Offset="1" Color="#6607060F" />
+          </LinearGradientBrush>
+        </Rectangle.Fill>
+      </Rectangle>
+
+      <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,24,0,0">
+        <Image Source="/Assets/logo-trim.png" Width="120" Height="136" />
+        <StackPanel VerticalAlignment="Center" Spacing="0">
+          <TextBlock Classes="wmgold" Text="Duel Monsters" />
+          <local:OutlinedText Text="GENESIS" Font="{StaticResource NameFont}" FontSize="42" LetterSpacing="8">
+        <local:OutlinedText.Effect><DropShadowEffect BlurRadius="6" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.85" /></local:OutlinedText.Effect>
+      </local:OutlinedText>
+        </StackPanel>
+      </StackPanel>
+      <DockPanel Width="282" HorizontalAlignment="Left" Margin="30,24,30,24">
+        <StackPanel DockPanel.Dock="Bottom" Spacing="3">
+          <TextBlock Classes="label" FontSize="14" Text="Signed in as" />
+          <TextBlock Name="RailKey" Classes="bold" FontSize="18" />
+          <Button Classes="link" FontSize="13" HorizontalAlignment="Left" Content="Switch account" Click="SwitchAccount_Click" />
+        </StackPanel>
+        <StackPanel Margin="0,164,0,0" VerticalAlignment="Top">
+          <Border Height="1" Background="{StaticResource Divider}" />
+          <Button Name="NavServers" Classes="nav active" AutomationProperties.Name="Server List" Click="Nav_Click">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Path Classes="diamond" Data="M5,0 L10,5 L5,10 L0,5 Z" Fill="{StaticResource Gold}" VerticalAlignment="Center" />
+              <TextBlock Text="Server List" />
+            </StackPanel>
+          </Button>
+          <Button Name="NavFriends" Classes="nav" AutomationProperties.Name="Friends" Click="Nav_Click">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Path Classes="diamond" Data="M5,0 L10,5 L5,10 L0,5 Z" Fill="{StaticResource Gold}" VerticalAlignment="Center" />
+              <TextBlock Text="Friends" />
+            </StackPanel>
+          </Button>
+          <Button Name="NavOptions" Classes="nav" AutomationProperties.Name="Options" Click="Nav_Click">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Path Classes="diamond" Data="M5,0 L10,5 L5,10 L0,5 Z" Fill="{StaticResource Gold}" VerticalAlignment="Center" />
+              <TextBlock Text="Options" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
+      </DockPanel>
+
+      <Border Margin="372,56,30,24" Padding="26,22" Background="#E00B0917" BorderBrush="#3DE0B458" BorderThickness="1">
+        <Panel>
+          <!-- Server List -->
+          <DockPanel Name="ServersPanel">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Height="44">
+              <TextBlock Classes="h1" Text="Server List" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Name="ServerStatus" Classes="muted" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
+              <Button Grid.Column="2" Classes="ghost" Height="40" Padding="16,0" AutomationProperties.Name="Refresh" Click="Refresh_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Path Data="M13.5,8 A5.5,5.5 0 1 1 11.9,4.1 M13.5,2.5 L13.5,5.5 L10.5,5.5" Stroke="{StaticResource Gold}" StrokeThickness="1.6" Width="16" Height="16" VerticalAlignment="Center" />
+                  <TextBlock Text="REFRESH" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </Grid>
+            <TextBlock DockPanel.Dock="Bottom" FontSize="13" LineHeight="19.5" TextWrapping="Wrap" Foreground="{StaticResource Muted2}" Margin="0,12,0,0"
+                       Text="BYOND Client is required to be running in the background to play DMG. Shutting down BYOND will terminate this client." />
+            <Border DockPanel.Dock="Top" Margin="0,14,0,8" Padding="16,0,16,8" BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1">
+              <Grid ColumnDefinitions="*,140,170">
+                <TextBlock Classes="label" Text="World" />
+                <TextBlock Grid.Column="1" Classes="label" Text="Players" />
+              </Grid>
+            </Border>
+            <ScrollViewer><StackPanel Name="ServerRows" Spacing="8" /></ScrollViewer>
+          </DockPanel>
+
+          <!-- Friends -->
+          <DockPanel Name="FriendsPanel" IsVisible="False">
+            <Panel DockPanel.Dock="Top" Height="44"><TextBlock Classes="h1" Text="Friends" VerticalAlignment="Center" /></Panel>
+            <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="12" Margin="0,14,0,14">
+              <StackPanel Spacing="6">
+                <TextBlock Classes="bold" FontSize="14" Text="Add a friend:" />
+                <TextBox Name="FriendInput" Classes="field" Width="320" Watermark="BYOND key" KeyDown="FriendInput_KeyDown" />
+              </StackPanel>
+              <Button Classes="cta" Height="42" VerticalAlignment="Bottom" AutomationProperties.Name="Add friend" Click="AddFriend_Click">
+                <TextBlock Text="ADD" FontSize="15" LetterSpacing="2" Margin="22,0" VerticalAlignment="Center" />
+              </Button>
+              <TextBlock Name="FriendStatus" Classes="muted" VerticalAlignment="Bottom" Margin="0,0,0,12" />
+            </StackPanel>
+            <TextBlock DockPanel.Dock="Bottom" FontSize="13" LineHeight="19.5" TextWrapping="Wrap" Foreground="{StaticResource Muted2}" Margin="0,12,0,0"
+                       Text="BYOND doesn't publish general online status, so friends show as online only while they're on a DMG server. Status refreshes with the server list every 30 seconds." />
+            <ScrollViewer><StackPanel Name="FriendRows" Spacing="8" /></ScrollViewer>
+          </DockPanel>
+
+          <!-- Options -->
+          <ScrollViewer Name="OptionsPanel" IsVisible="False">
+            <StackPanel Spacing="14">
+              <Panel Height="44"><TextBlock Classes="h1" Text="Options" VerticalAlignment="Center" /></Panel>
+
+              <StackPanel Spacing="10">
+                <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
+                  <TextBlock Classes="label" Text="Launcher" />
+                </Border>
+                <StackPanel>
+                  <StackPanel Orientation="Horizontal" Spacing="5">
+                    <TextBlock FontSize="16" Text="Version" VerticalAlignment="Bottom" />
+                    <TextBlock Name="VersionText" Classes="bold" FontSize="18" VerticalAlignment="Bottom" />
+                  </StackPanel>
+                  <TextBlock Name="UpdateStatus" FontSize="14" Foreground="{StaticResource Muted}" />
+                </StackPanel>
+                <Button Classes="ghost" HorizontalAlignment="Left" Content="CHECK FOR UPDATES" Click="CheckUpdates_Click" />
+                <CheckBox Name="UpdatesOnStart" FontFamily="{StaticResource TextBoldFont}" Content="Check for launcher updates on start"
+                          IsCheckedChanged="UpdatesOnStart_Changed" />
+              </StackPanel>
+
+              <StackPanel Spacing="10">
+                <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
+                  <TextBlock Classes="label" Text="BYOND Client" />
+                </Border>
+                <TextBlock Name="ByondDirText" FontSize="16" TextWrapping="Wrap" />
+                <TextBlock Name="ByondVersionText" FontSize="16" />
+              </StackPanel>
+
+              <StackPanel Spacing="10">
+                <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
+                  <TextBlock Classes="label" Text="Stored data" />
+                </Border>
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <Button Classes="ghost" Width="220" Content="RESET SETTINGS" Click="ResetSettings_Click" />
+                  <TextBlock FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Text="Refreshes the launcher. Should resolve most issues." />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <Button Classes="danger" Width="220" Content="CLEAR STORED DATA" Click="ClearData_Click" />
+                  <TextBlock FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Text="Deletes all launcher data &amp; restarts the launcher." />
+                </StackPanel>
+                <TextBlock Name="OptionsStatus" FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
+          </ScrollViewer>
+        </Panel>
+      </Border>
     </Panel>
 
-    <!-- Modal prompt -->
-    <Border Name="Overlay" Grid.RowSpan="2" IsVisible="False" Background="#C0000000">
-      <Border HorizontalAlignment="Center" VerticalAlignment="Center" Width="460" Padding="24" CornerRadius="8"
-              Background="#1E1A26" BorderBrush="#902631" BorderThickness="1">
-        <StackPanel Spacing="16">
-          <TextBlock Name="AskText" TextWrapping="Wrap" />
-          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-            <Button Name="AskYes" Classes="accent" Click="AskYes_Click" />
-            <Button Name="AskNo" Click="AskNo_Click" />
+    <!-- ============ Dialog ============ -->
+    <Panel Name="Overlay" IsVisible="False" Background="#B805040D">
+      <Border Width="500" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="26,24,26,22"
+              Background="#110E20" BorderBrush="#80E0B458" BorderThickness="1" BoxShadow="0 18 60 0 #B3000000">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="Auto,*">
+            <TextBlock Name="AskTitle" Classes="h1" FontSize="26" />
+            <Border Grid.Column="1" Height="1" Background="#47E0B458" VerticalAlignment="Center" Margin="14,0,0,0" />
+          </Grid>
+          <TextBlock Name="AskText" FontSize="16" LineHeight="24" TextWrapping="Wrap" />
+          <TextBlock Name="AskDetail" FontSize="14" LineHeight="21" TextWrapping="Wrap" Foreground="{StaticResource Muted}" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,6,0,0">
+            <Button Name="AskNo" Classes="ghost" Width="140" Height="48" FontSize="17" Click="AskNo_Click" />
+            <Button Name="AskYes" Classes="cta" MinWidth="200" Height="48" Click="AskYes_Click">
+              <Grid ColumnDefinitions="*,48">
+                <TextBlock Name="AskYesText" FontSize="17" LetterSpacing="3" Margin="16,0" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Classes="ctaseg">
+                  <Grid Width="28" Height="28">
+                    <Ellipse Width="22" Height="22" Stroke="#1C1206" StrokeThickness="2" />
+                    <Path Data="M10,14 L18,14 M14.5,10 L18.5,14 L14.5,18" Stroke="#1C1206" StrokeThickness="2" />
+                  </Grid>
+                </Border>
+              </Grid>
+            </Button>
           </StackPanel>
         </StackPanel>
       </Border>
-    </Border>
-  </Grid>
+    </Panel>
+
+    <!-- ============ Window controls (always on top) ============ -->
+    <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,12,14,0">
+      <Button Classes="win" ToolTip.Tip="Minimise" AutomationProperties.Name="Minimise" Click="Minimise_Click">
+        <Path Data="M3,12 L13,12" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.6" Width="16" Height="16" />
+      </Button>
+      <Button Classes="win close" ToolTip.Tip="Close" AutomationProperties.Name="Close" Click="Close_Click">
+        <Path Data="M3,3 L13,13 M13,3 L3,13" Stroke="{Binding $parent[Button].Foreground}" StrokeThickness="1.6" Width="16" Height="16" />
+      </Button>
+    </StackPanel>
+  </Panel>
 </Window>

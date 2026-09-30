@@ -3,19 +3,237 @@
              x:Class="DMGLauncher.App"
              RequestedThemeVariant="Dark">
   <Application.Resources>
-    <!-- DMG red drives Fluent's accent buttons, tab underline and checkboxes -->
-    <Color x:Key="SystemAccentColor">#902631</Color>
-    <Color x:Key="SystemAccentColorDark1">#7A1F29</Color>
-    <Color x:Key="SystemAccentColorDark2">#641922</Color>
-    <Color x:Key="SystemAccentColorLight1">#A8323E</Color>
-    <Color x:Key="SystemAccentColorLight2">#BE4250</Color>
+    <!-- Card fonts packed with the game (icons/skin/rgui/fonts) -->
+    <FontFamily x:Key="NameFont">avares://DMG-Launcher/Assets/Fonts#Yu-Gi-Oh! Matrix Small Caps 1</FontFamily>
+    <FontFamily x:Key="ButtonFont">avares://DMG-Launcher/Assets/Fonts#MatrixBoldSmallCaps</FontFamily>
+    <FontFamily x:Key="TypeFont">avares://DMG-Launcher/Assets/Fonts#Yu-Gi-Oh!ITCStoneSerifSmallCaps</FontFamily>
+    <FontFamily x:Key="TextFont">avares://DMG-Launcher/Assets/Fonts#MatrixBook</FontFamily>
+    <FontFamily x:Key="TextBoldFont">avares://DMG-Launcher/Assets/Fonts#MatrixBold</FontFamily>
+    <FontFamily x:Key="NumberFont">avares://DMG-Launcher/Assets/Fonts#Yugioh Rush Duel Numbers V4</FontFamily>
+
+    <SolidColorBrush x:Key="Gold" Color="#E0B458" />
+    <SolidColorBrush x:Key="GoldHover" Color="#F4CF7C" />
+    <SolidColorBrush x:Key="Text" Color="#F1EBE3" />
+    <SolidColorBrush x:Key="Muted" Color="#B9AEA4" />
+    <SolidColorBrush x:Key="Muted2" Color="#A3978C" />
+    <SolidColorBrush x:Key="Divider" Color="#2EE0B458" />
+    <SolidColorBrush x:Key="RowBorder" Color="#332E4C" />
+    <SolidColorBrush x:Key="FieldBorder" Color="#4C4570" />
+
+    <!-- gold checkboxes -->
+    <Color x:Key="SystemAccentColor">#C8972F</Color>
+    <Color x:Key="SystemAccentColorDark1">#B0822A</Color>
+    <Color x:Key="SystemAccentColorDark2">#96701F</Color>
+    <Color x:Key="SystemAccentColorLight1">#D6A53B</Color>
+    <Color x:Key="SystemAccentColorLight2">#E0B458</Color>
   </Application.Resources>
+
   <Application.Styles>
     <FluentTheme />
-    <Style Selector="TextBlock.title">
-      <Setter Property="FontSize" Value="26" />
+
+    <Style Selector="TextBlock.name"><Setter Property="FontFamily" Value="{StaticResource NameFont}" /></Style>
+    <Style Selector="TextBlock.h1">
+      <Setter Property="FontFamily" Value="{StaticResource NameFont}" />
+      <Setter Property="FontSize" Value="30" />
+      <Setter Property="Foreground" Value="{StaticResource Gold}" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="FontFamily" Value="{StaticResource TypeFont}" />
       <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="Foreground" Value="#E8C15A" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="LetterSpacing" Value="1" />
+      <Setter Property="Foreground" Value="{StaticResource Muted2}" />
+    </Style>
+    <!-- "Duel Monsters / GENESIS" wordmark beside the logo -->
+    <Style Selector="TextBlock.wmgold">
+      <Setter Property="FontFamily" Value="{StaticResource NameFont}" />
+      <Setter Property="Effect"><DropShadowEffect BlurRadius="6" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.85" /></Setter>
+    </Style>
+    <Style Selector="TextBlock.wmgold">
+      <Setter Property="FontSize" Value="42" />
+      <Setter Property="Margin" Value="0,0,0,-8" />
+      <Setter Property="Foreground">
+        <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+          <GradientStop Offset="0" Color="#FFF3C4" />
+          <GradientStop Offset="0.45" Color="#F1C86A" />
+          <GradientStop Offset="1" Color="#B8832C" />
+        </LinearGradientBrush>
+      </Setter>
+    </Style>
+
+    <Style Selector="TextBlock.bold"><Setter Property="FontFamily" Value="{StaticResource TextBoldFont}" /></Style>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{StaticResource Muted}" />
+    </Style>
+
+    <!-- gold call-to-action -->
+    <Style Selector="Button.cta">
+      <Setter Property="Background" Value="#C8972F" />
+      <Setter Property="Foreground" Value="#1C1206" />
+      <Setter Property="FontFamily" Value="{StaticResource ButtonFont}" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Stretch" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.cta:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#D6A53B" />
+      <Setter Property="Foreground" Value="#1C1206" />
+    </Style>
+    <Style Selector="Button.cta:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#B0822A" />
+    </Style>
+    <Style Selector="Button.cta:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#5A4A2C" />
+      <Setter Property="Foreground" Value="#2A2112" />
+    </Style>
+    <Style Selector="Border.ctaseg"><Setter Property="Background" Value="#B0822A" /></Style>
+    <Style Selector="Button.cta:disabled Border.ctaseg"><Setter Property="Background" Value="#4E4027" /></Style>
+
+    <!-- outlined gold / danger buttons -->
+    <Style Selector="Button.ghost, Button.danger">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="#8A6D38" />
+      <Setter Property="Foreground" Value="{StaticResource Gold}" />
+      <Setter Property="FontFamily" Value="{StaticResource ButtonFont}" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="18,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.ghost:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#1AE0B458" />
+      <Setter Property="BorderBrush" Value="#8A6D38" />
+      <Setter Property="Foreground" Value="{StaticResource Gold}" />
+    </Style>
+    <Style Selector="Button.danger">
+      <Setter Property="BorderBrush" Value="#B85450" />
+      <Setter Property="Foreground" Value="#EF8A85" />
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#1FE66E69" />
+      <Setter Property="BorderBrush" Value="#B85450" />
+      <Setter Property="Foreground" Value="#EF8A85" />
+    </Style>
+
+    <!-- square icon buttons (remove, settings cog) -->
+    <Style Selector="Button.icon">
+      <Setter Property="Width" Value="44" />
+      <Setter Property="Height" Value="44" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="#D90E0C1C" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorder}" />
+      <Setter Property="Foreground" Value="{StaticResource Muted}" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#1A1730" />
+      <Setter Property="BorderBrush" Value="#6A6390" />
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+
+    <!-- window minimise / close -->
+    <Style Selector="Button.win">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{StaticResource Muted}" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.win:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#1FFFFFFF" />
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+    <Style Selector="Button.win.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#C42B1C" />
+    </Style>
+
+    <!-- text links -->
+    <Style Selector="Button.link">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Foreground" Value="{StaticResource Gold}" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{StaticResource GoldHover}" />
+    </Style>
+
+    <!-- left-rail navigation -->
+    <Style Selector="Button.nav">
+      <Setter Property="Height" Value="48" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="BorderBrush" Value="{StaticResource Divider}" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="FontFamily" Value="{StaticResource NameFont}" />
+      <Setter Property="FontSize" Value="20" />
+      <Setter Property="Foreground" Value="#CFC4B8" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.nav:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{StaticResource Divider}" />
+      <Setter Property="Foreground" Value="{StaticResource GoldHover}" />
+    </Style>
+    <Style Selector="Button.nav Path.diamond"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="Button.nav.active"><Setter Property="Foreground" Value="{StaticResource Gold}" /></Style>
+    <Style Selector="Button.nav.active Path.diamond"><Setter Property="Opacity" Value="1" /></Style>
+
+    <!-- dark fields -->
+    <Style Selector="TextBox.field">
+      <Setter Property="Height" Value="42" />
+      <Setter Property="FontSize" Value="16" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Background" Value="#0E0C1C" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorder}" />
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="TextBox.field:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="#0E0C1C" />
+      <Setter Property="BorderBrush" Value="#6A6390" />
+    </Style>
+    <Style Selector="TextBox.field:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="#0E0C1C" />
+      <Setter Property="BorderBrush" Value="#4F8FD8" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+    <Style Selector="TextBox.field:focus, TextBox.field:pointerover">
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+    </Style>
+
+    <!-- Holactie: slow float -->
+    <Style Selector="Image.float">
+      <Style.Animations>
+        <Animation Duration="0:0:6" IterationCount="Infinite" Easing="SineEaseInOut">
+          <KeyFrame Cue="0%"><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="50%"><Setter Property="TranslateTransform.Y" Value="-14" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
     </Style>
   </Application.Styles>
 </Application>

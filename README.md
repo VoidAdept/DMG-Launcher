@@ -17,6 +17,18 @@ Joining hands the server's `byond://` address to BYOND, exactly like the hub's P
 - Logging in to BYOND from inside the launcher.
 - Linux / macOS.
 
+## integrated-client branch (prototype)
+Based on the approach of the MIT-licensed [SS13 Launcher](https://github.com/spacestation13/launcher):
+- **Sign-in:** BYOND's own login page (secure.byond.com) inside the launcher (WebView2). The password goes to byond.com
+  only; "Keep me logged in" is BYOND's cookie in a private profile (`%LOCALAPPDATA%\DMG-Launcher\webview`).
+  The launcher reads the key and the `webid` from DMG's hub Play link.
+- **Managed BYOND:** the official zip from byond.com (community mirror as fallback), updated from `version.txt`, kept in
+  `%LOCALAPPDATA%\DMG-Launcher\byond\<version>` and trimmed to the files needed to play. No installer or admin rights.
+- **Joining:** starts that copy's DreamSeeker with the world address. BYOND's own "Your Game Is Starting" screen
+  (the non-member wait) runs in full; once the game window opens the launcher closes the pager DreamSeeker started.
+  Nothing of BYOND's is modified, decompiled or skipped.
+- If an installed BYOND is already open, the launcher asks you to quit it first (BYOND runs one pager at a time).
+
 ## Art and fonts
 Everything in `Assets/` comes from the DMG team's own files; no generated art.
 - `logo.png` / `logo.ico`: the DMG 20th logo.

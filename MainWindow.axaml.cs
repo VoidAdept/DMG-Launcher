@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Microsoft.Web.WebView2.Core;
 using Path = Avalonia.Controls.Shapes.Path;
 
 namespace DMGLauncher;
@@ -16,10 +17,14 @@ public partial class MainWindow : Window
 {
     Settings _settings = Settings.Load();
     List<World> _worlds = [];
-    readonly DispatcherTimer _loginTimer = new() { Interval = TimeSpan.FromSeconds(2) };
     readonly DispatcherTimer _serverTimer = new() { Interval = TimeSpan.FromSeconds(30) };
-    readonly DispatcherTimer _byondWatch = new() { Interval = TimeSpan.FromSeconds(5) };
+    readonly ByondWeb _web;
+    ByondWeb.Session _session = new(null, null, null);
+    string? _byondVersion;
+    CancellationTokenSource? _signInCancel;
     TaskCompletionSource<bool>? _ask;
+    bool _loggedIn; // false while Options is opened from the login screen cog
+    bool _joining;
 
     public MainWindow()
     {
@@ -27,10 +32,15 @@ public partial class MainWindow : Window
         LoginVersion.Text = $"Launcher {Updater.CurrentText}";
         VersionText.Text = Updater.CurrentText;
         UpdatesOnStart.IsChecked = UpdatesOnStartLogin.IsChecked = _settings.CheckUpdatesOnStart;
-        _loginTimer.Tick += (_, _) => UpdateLogin();
         _serverTimer.Tick += async (_, _) => await RefreshWorlds();
-        // The launcher only makes sense next to a running pager, so it closes with it.
-        _byondWatch.Tick += (_, _) => { if (!Byond.IsRunning) Close(); };
+        _web = new ByondWeb(this);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _signInCancel?.Cancel();
+        _web.Close();
+        base.OnClosed(e);
     }
 
     protected override async void OnOpened(EventArgs e)
@@ -43,28 +53,29 @@ public partial class MainWindow : Window
             await CheckForUpdate();
         }
 
-        StartupText.Text = "Checking for BYOND…";
-        if (Byond.PagerExe is null)
-        {
-            if (await Ask("BYOND Required", "BYOND is needed to play Duel Monsters Genesis, but it isn't detected on this computer.",
-                    "Click Install to visit the BYOND website to download and install the BYOND client software, then restart this launcher to continue.",
-                    "INSTALL", "QUIT"))
-                Byond.OpenUrl(Byond.DownloadPage);
-            Close();
-            return;
-        }
+        // The launcher keeps its own copy of the official BYOND client, so no BYOND install or admin rights are needed.
+        StartupText.Text = "Preparing BYOND…";
+        try { _byondVersion = await ManagedByond.EnsureLatest(new Progress<string>(t => StartupText.Text = t)); }
+        catch (Exception ex) { await Fatal("BYOND Unavailable", $"The BYOND client could not be downloaded from byond.com: {ex.Message}"); return; }
+        ShowByondInfo();
 
-        StartupText.Text = "Starting BYOND…";
-        if (!await Byond.EnsureRunning())
-        {
-            await Fatal("BYOND Not Running", $"BYOND could not be started after {Byond.MaxLaunchTries} tries. The launcher will now close.");
-            return;
-        }
-
-        _byondWatch.Start();
-        SetInfo(ByondDirText, "BYOND Install Directory:", Byond.InstallDir);
-        SetInfo(ByondVersionText, "BYOND Client Version:", Byond.ClientVersion ?? "unknown");
+        StartupText.Text = "Checking your BYOND sign-in…";
+        if (!await RefreshSession()) return;
         ShowLogin();
+    }
+
+    void ShowByondInfo()
+    {
+        SetInfo(ByondDirText, "BYOND Client Folder:", ManagedByond.Root);
+        SetInfo(ByondVersionText, "BYOND Client Version:", _byondVersion);
+    }
+
+    async void CheckByond_Click(object? s, RoutedEventArgs e)
+    {
+        ByondStatus.Text = "Checking byond.com…";
+        try { _byondVersion = await ManagedByond.EnsureLatest(new Progress<string>(t => ByondStatus.Text = t)); ByondStatus.Text = $"BYOND {_byondVersion} is the latest version."; }
+        catch (Exception ex) { ByondStatus.Text = $"Couldn't update BYOND: {ex.Message}"; }
+        ShowByondInfo();
     }
 
     void SetInfo(TextBlock target, string label, string? value)
@@ -126,39 +137,81 @@ public partial class MainWindow : Window
 
     void ShowLogin()
     {
+        _loggedIn = false;
         _serverTimer.Stop();
         Show(LoginView);
         UpdateLogin();
-        _loginTimer.Start();
+    }
+
+    // Reads the byond.com session (who is signed in + the id BYOND puts in DMG's Play link). False = fatal.
+    async Task<bool> RefreshSession()
+    {
+        try { _session = await _web.CheckSession(); return true; }
+        catch (WebView2RuntimeNotFoundException)
+        {
+            await Fatal("WebView2 Required", "Microsoft Edge WebView2 Runtime is needed for BYOND sign-in (BYOND itself needs it too). Install it from Microsoft, then start the launcher again.");
+            return false;
+        }
+        catch (Exception ex) { Trace.WriteLine($"session check: {ex.Message}"); _session = new(null, null, null); return true; }
     }
 
     void UpdateLogin()
     {
-        var key = Byond.SignedInKey;
+        var key = _session.SignedIn ? _session.Key : null;
         KeyBox.Text = key ?? "Not signed in";
         KeyCheck.IsVisible = key != null;
-        KeySource.Text = key is null ? "Sign in through the BYOND pager." : "Detected from the BYOND pager.";
-        PagerLink.Content = key is null ? "Sign in with BYOND" : "Switch account in BYOND";
-        ContinueButton.IsEnabled = key != null;
+        KeySource.Text = key is null ? "Sign in on BYOND's website to play." : "Signed in on byond.com.";
+        PagerLink.Content = key is null ? "Sign in" : "Sign out";
     }
 
-    void SignIn_Click(object? s, RoutedEventArgs e) => Byond.ShowPager();
+    // Shows BYOND's own login page in the sign-in panel; true once signed in.
+    async Task<bool> SignIn()
+    {
+        WebLogin.IsVisible = true;
+        await Task.Delay(50); // let the panel lay out before placing the browser view over it
+        var topLeft = WebHost.TranslatePoint(new Point(0, 0), this) ?? new Point(0, 0);
+        var scale = RenderScaling;
+        var bounds = new System.Drawing.Rectangle((int)(topLeft.X * scale), (int)(topLeft.Y * scale), (int)(WebHost.Bounds.Width * scale), (int)(WebHost.Bounds.Height * scale));
+        _signInCancel = new CancellationTokenSource();
+        bool ok;
+        try { ok = await _web.SignIn(bounds, _signInCancel.Token); }
+        catch (WebView2RuntimeNotFoundException) { ok = false; await Ask("WebView2 Required", "Microsoft Edge WebView2 Runtime is needed for BYOND sign-in.", null, "OK"); }
+        finally { WebLogin.IsVisible = false; }
+        if (ok) await RefreshSession();
+        UpdateLogin();
+        return _session.SignedIn;
+    }
+
+    void CancelSignIn_Click(object? s, RoutedEventArgs e) => _signInCancel?.Cancel();
+
+    async void SignIn_Click(object? s, RoutedEventArgs e)
+    {
+        if (!_session.SignedIn) { await SignIn(); return; }
+        await _web.SignOut();
+        await RefreshSession();
+        UpdateLogin();
+    }
+
     void CreateAccount_Click(object? s, RoutedEventArgs e) => Byond.OpenUrl(Byond.JoinPage);
     void Gear_Click(object? s, RoutedEventArgs e) => ShowMain(NavOptions);
     void SwitchAccount_Click(object? s, RoutedEventArgs e) => ShowLogin();
 
-    void Continue_Click(object? s, RoutedEventArgs e)
+    async void Continue_Click(object? s, RoutedEventArgs e)
     {
-        if (Byond.SignedInKey is null) { UpdateLogin(); return; }
+        if (!_session.SignedIn && !await SignIn()) return;
+        _loggedIn = true;
         ShowMain(NavServers);
     }
 
     async void ShowMain(Button tab)
     {
-        _loginTimer.Stop();
-        RailKey.Text = Byond.SignedInKey ?? "Not signed in";
+        // Before logging in, only Options is reachable: no server list, friends or join.
+        NavServers.IsVisible = NavFriends.IsVisible = RailLabel.IsVisible = RailKey.IsVisible = _loggedIn;
+        RailKey.Text = _session.Key ?? "";
+        RailLink.Content = _loggedIn ? "Switch account" : "Back to Log In";
         Show(MainView);
         SelectTab(tab);
+        if (!_loggedIn) return;
         _serverTimer.Start();
         await RefreshWorlds();
     }
@@ -194,11 +247,32 @@ public partial class MainWindow : Window
             name.Children.Add(new TextBlock { Text = w.Status != "" ? w.Status : w.Address, FontSize = 18, Classes = { "bold" }, TextTrimming = TextTrimming.CharacterEllipsis });
             name.Children.Add(new TextBlock { Text = w.Address, FontSize = 13, Foreground = Res<IBrush>("Muted2") });
             var players = new TextBlock { Text = w.Players.Count.ToString(), FontFamily = Res<FontFamily>("NumberFont"), FontSize = 24, VerticalAlignment = VerticalAlignment.Center };
-            ServerRows.Children.Add(Row("*,140,170", name, players, Cta("JOIN", 44, true, () => Byond.Join(w))));
+            ServerRows.Children.Add(Row("*,140,170", name, players, Cta("JOIN", 44, true, () => Join(w))));
         }
         if (_worlds.Count == 0)
             ServerRows.Children.Add(new TextBlock { Text = "No DMG servers are online right now.", Foreground = Res<IBrush>("Muted") });
         RenderFriends();
+    }
+
+    // Joins through the launcher's BYOND copy with a fresh web session id. BYOND's own pager runs its normal
+    // "Your Game Is Starting" screen (and the non-member wait) before the game opens; nothing skips it.
+    async void Join(World w)
+    {
+        if (_joining) return;
+        _joining = true;
+        try
+        {
+            ServerStatus.Text = "Checking your BYOND sign-in…";
+            if (!await RefreshSession()) return;
+            if (!_session.SignedIn && !await SignIn()) { ServerStatus.Text = "Sign in to BYOND to join."; return; }
+            while (ManagedByond.OtherByondRunning())
+                if (!await Ask("Close BYOND First", "Another copy of BYOND is open (the pager or a game window).",
+                        "BYOND only runs one pager at a time, so that copy would take over the join. Quit it from the system tray, then press Retry.", "RETRY", "CANCEL"))
+                { ServerStatus.Text = "Join cancelled."; return; }
+            ServerStatus.Text = await ManagedByond.Connect(_byondVersion!, w.Url, _session.WebId!, new Progress<string>(t => ServerStatus.Text = t));
+        }
+        catch (Exception ex) { await Ask("Couldn't Join", $"BYOND couldn't start the game: {ex.Message}", null, "OK"); }
+        finally { _joining = false; }
     }
 
     // ---------- friends ----------
@@ -220,7 +294,7 @@ public partial class MainWindow : Window
             status.Children.Add(label);
 
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
-            if (online) buttons.Children.Add(Cta("JOIN", 44, false, () => Byond.Join(w!), 120));
+            if (online) buttons.Children.Add(Cta("JOIN", 44, false, () => Join(w!), 120));
             var remove = new Button { Classes = { "icon" }, Background = Brushes.Transparent, Content = CrossIcon() };
             ToolTip.SetTip(remove, $"Remove {friend}");
             Avalonia.Automation.AutomationProperties.SetName(remove, $"Remove {friend}");

@@ -84,7 +84,7 @@
         </WrapPanel>
         <Border Margin="0,16,0,0" Padding="14,12" Background="#CC0E0C1C" BorderBrush="{StaticResource RowBorder}" BorderThickness="1">
           <TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="19" Foreground="#CFC4B8"
-                     Text="DMG Launcher will never ask you for your BYOND password. All sign-ins are handled by BYOND." />
+                     Text="You sign in on BYOND's own website. DMG Launcher never sees or stores your BYOND password." />
         </Border>
         <CheckBox Name="UpdatesOnStartLogin" Margin="0,10,0,0" FontFamily="{StaticResource TextBoldFont}"
                   Content="Check for launcher updates on start" IsCheckedChanged="UpdatesOnStart_Changed" />
@@ -157,9 +157,9 @@
       </StackPanel>
       <DockPanel Width="282" HorizontalAlignment="Left" Margin="30,24,30,24">
         <StackPanel DockPanel.Dock="Bottom" Spacing="3">
-          <TextBlock Classes="label" FontSize="14" Text="Signed in as" />
+          <TextBlock Name="RailLabel" Classes="label" FontSize="14" Text="Signed in as" />
           <TextBlock Name="RailKey" Classes="bold" FontSize="18" />
-          <Button Classes="link" FontSize="13" HorizontalAlignment="Left" Content="Switch account" Click="SwitchAccount_Click" />
+          <Button Name="RailLink" Classes="link" FontSize="13" HorizontalAlignment="Left" Content="Switch account" Click="SwitchAccount_Click" />
         </StackPanel>
         <StackPanel Margin="0,164,0,0" VerticalAlignment="Top">
           <Border Height="1" Background="{StaticResource Divider}" />
@@ -254,6 +254,10 @@
                 </Border>
                 <TextBlock Name="ByondDirText" FontSize="16" TextWrapping="Wrap" />
                 <TextBlock Name="ByondVersionText" FontSize="16" />
+                <StackPanel Orientation="Horizontal" Spacing="16">
+                  <Button Classes="ghost" Content="CHECK FOR BYOND UPDATE" Click="CheckByond_Click" />
+                  <TextBlock Name="ByondStatus" FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                </StackPanel>
               </StackPanel>
 
               <StackPanel Spacing="10">
@@ -273,6 +277,23 @@
             </StackPanel>
           </ScrollViewer>
         </Panel>
+      </Border>
+    </Panel>
+
+    <!-- ============ BYOND sign-in (BYOND's own login page in a browser view placed over WebHost) ============ -->
+    <Panel Name="WebLogin" IsVisible="False" Background="#B805040D">
+      <Border Width="560" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="26,22,26,22"
+              Background="#110E20" BorderBrush="#80E0B458" BorderThickness="1" BoxShadow="0 18 60 0 #B3000000">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="Auto,*">
+            <TextBlock Classes="h1" FontSize="26" Text="Sign in to BYOND" />
+            <Border Grid.Column="1" Height="1" Background="#47E0B458" VerticalAlignment="Center" Margin="14,0,0,0" />
+          </Grid>
+          <TextBlock FontSize="13" TextWrapping="Wrap" Foreground="{StaticResource Muted}"
+                     Text="This is BYOND's own sign-in page. Your password goes to byond.com only." />
+          <Border Name="WebHost" Height="380" Background="#FFFFFF" />
+          <Button Classes="ghost" HorizontalAlignment="Right" Content="CANCEL" Click="CancelSignIn_Click" />
+        </StackPanel>
       </Border>
     </Panel>
 

@@ -25,6 +25,8 @@ public partial class MainWindow : Window
     TaskCompletionSource<bool>? _ask;
     bool _loggedIn; // false while Options is opened from the login screen cog
     bool _joining;
+    List<string?> _byondChoices = []; // Options drop-down: null = latest public release
+    bool _versionsLoaded;
 
     public MainWindow()
     {
@@ -32,6 +34,7 @@ public partial class MainWindow : Window
         LoginVersion.Text = $"Launcher {Updater.CurrentText}";
         VersionText.Text = Updater.CurrentText;
         UpdatesOnStart.IsChecked = UpdatesOnStartLogin.IsChecked = _settings.CheckUpdatesOnStart;
+        ByondUpdatesOnStart.IsChecked = _settings.CheckByondUpdatesOnStart;
         _serverTimer.Tick += async (_, _) => await RefreshWorlds();
         _web = new ByondWeb(this);
     }
@@ -55,7 +58,7 @@ public partial class MainWindow : Window
 
         // The launcher keeps its own copy of the official BYOND client, so no BYOND install or admin rights are needed.
         StartupText.Text = "Preparing BYOND…";
-        try { _byondVersion = await ManagedByond.EnsureLatest(new Progress<string>(t => StartupText.Text = t)); }
+        try { _byondVersion = await ManagedByond.Prepare(_settings.ByondVersion, _settings.CheckByondUpdatesOnStart, new Progress<string>(t => StartupText.Text = t)); }
         catch (Exception ex) { await Fatal("BYOND Unavailable", $"The BYOND client could not be downloaded from byond.com: {ex.Message}"); return; }
         ShowByondInfo();
 
@@ -66,16 +69,73 @@ public partial class MainWindow : Window
 
     void ShowByondInfo()
     {
-        SetInfo(ByondDirText, "BYOND Client Folder:", ManagedByond.Root);
-        SetInfo(ByondVersionText, "BYOND Client Version:", _byondVersion);
+        var how = _settings.ByondVersion != null ? "chosen in Options" : "latest public release";
+        SetInfo(ByondVersionText, "BYOND Client Version:", $"{_byondVersion} ({how})");
+        ByondDirText.Text = $"Stored in {ManagedByond.Root}";
     }
 
-    async void CheckByond_Click(object? s, RoutedEventArgs e)
+    void ByondUpdatesOnStart_Changed(object? s, RoutedEventArgs e)
     {
-        ByondStatus.Text = "Checking byond.com…";
-        try { _byondVersion = await ManagedByond.EnsureLatest(new Progress<string>(t => ByondStatus.Text = t)); ByondStatus.Text = $"BYOND {_byondVersion} is the latest version."; }
-        catch (Exception ex) { ByondStatus.Text = $"Couldn't update BYOND: {ex.Message}"; }
+        var on = ByondUpdatesOnStart.IsChecked == true;
+        if (on == _settings.CheckByondUpdatesOnStart) return;
+        _settings.CheckByondUpdatesOnStart = on;
+        _settings.Save();
+    }
+
+    // Fills the version drop-down from BYOND's build archive the first time Options is opened.
+    async void LoadByondVersions()
+    {
+        if (_versionsLoaded) return;
+        _versionsLoaded = true;
+        try
+        {
+            var latest = await ManagedByond.LatestVersion();
+            var all = await ManagedByond.ArchiveVersions();
+            _byondChoices = [null, .. all];
+            ByondVersionPick.ItemsSource = new[] { $"Latest public release ({latest})" }
+                .Concat(all.Select(v => Version.Parse(v) > Version.Parse(latest) ? $"{v} (beta)" : v)).ToList();
+            ByondVersionPick.SelectedIndex = _settings.ByondVersion is { } chosen && all.IndexOf(chosen) is var i and >= 0 ? i + 1 : 0;
+        }
+        catch (Exception ex)
+        {
+            _versionsLoaded = false; // try again next time Options opens
+            ByondVersionPick.PlaceholderText = "Version list unavailable";
+            ByondStatus.Text = $"Couldn't load BYOND's version list: {ex.Message}";
+        }
+    }
+
+    async void InstallByond_Click(object? s, RoutedEventArgs e)
+    {
+        if (ByondVersionPick.SelectedIndex is var i && (i < 0 || i >= _byondChoices.Count)) return;
+        var chosen = _byondChoices[ByondVersionPick.SelectedIndex];
+        try
+        {
+            var progress = new Progress<string>(t => ByondStatus.Text = t);
+            _byondVersion = await ManagedByond.Install(chosen ?? await ManagedByond.LatestVersion(), progress);
+            _settings.ByondVersion = chosen;
+            _settings.Save();
+            ByondStatus.Text = chosen is null
+                ? $"Using the latest public release, BYOND {_byondVersion}."
+                : $"Using BYOND {_byondVersion}. The launcher stays on this version until you pick the latest public release.";
+        }
+        catch (Exception ex) { ByondStatus.Text = $"Couldn't install that version: {ex.Message}"; }
         ShowByondInfo();
+    }
+
+    // Downloads the current build again from byond.com, then restarts the launcher.
+    async void ReinstallByond_Click(object? s, RoutedEventArgs e)
+    {
+        if (_byondVersion is not { } v) return;
+        if (!await Ask("Reinstall BYOND", $"Delete BYOND {v} and download it again from byond.com?",
+                "Close any DMG game windows first. The launcher restarts afterwards.", "REINSTALL", "CANCEL"))
+            return;
+        try
+        {
+            ManagedByond.Remove(v);
+            await ManagedByond.Install(v, new Progress<string>(t => ByondStatus.Text = t));
+        }
+        catch (Exception ex) { ByondStatus.Text = $"Couldn't reinstall BYOND (is a game window still open?): {ex.Message}"; return; }
+        Restart();
     }
 
     void SetInfo(TextBlock target, string label, string? value)
@@ -224,6 +284,7 @@ public partial class MainWindow : Window
         ServersPanel.IsVisible = tab == NavServers;
         FriendsPanel.IsVisible = tab == NavFriends;
         OptionsPanel.IsVisible = tab == NavOptions;
+        if (tab == NavOptions) LoadByondVersions();
     }
 
     // ---------- server list ----------
@@ -260,19 +321,32 @@ public partial class MainWindow : Window
     {
         if (_joining) return;
         _joining = true;
+        JoinWorldName.Text = w.Name;
+        void Overlay(string? status) { JoinOverlay.IsVisible = status != null; if (status != null) JoinStatus.Text = status; }
         try
         {
-            ServerStatus.Text = "Checking your BYOND sign-in…";
+            Overlay("Checking your BYOND sign-in…");
             if (!await RefreshSession()) return;
-            if (!_session.SignedIn && !await SignIn()) { ServerStatus.Text = "Sign in to BYOND to join."; return; }
+            if (!_session.SignedIn)
+            {
+                Overlay(null);
+                if (!await SignIn()) { ServerStatus.Text = "Sign in to BYOND to join."; return; }
+            }
             while (ManagedByond.OtherByondRunning())
+            {
+                Overlay(null);
                 if (!await Ask("Close BYOND First", "Another copy of BYOND is open (the pager or a game window).",
                         "BYOND only runs one pager at a time, so that copy would take over the join. Quit it from the system tray, then press Retry.", "RETRY", "CANCEL"))
                 { ServerStatus.Text = "Join cancelled."; return; }
-            ServerStatus.Text = await ManagedByond.Connect(_byondVersion!, w.Url, _session.WebId!, new Progress<string>(t => ServerStatus.Text = t));
+            }
+            Overlay("BYOND is starting your game…");
+            var error = await ManagedByond.Connect(_byondVersion!, w.Url, _session.WebId!, new Progress<string>(t => JoinStatus.Text = t));
+            Overlay(null);
+            ServerStatus.Text = error ?? "Game opened.";
+            if (error != null) await Ask("Couldn't Join", error, null, "OK");
         }
-        catch (Exception ex) { await Ask("Couldn't Join", $"BYOND couldn't start the game: {ex.Message}", null, "OK"); }
-        finally { _joining = false; }
+        catch (Exception ex) { Overlay(null); await Ask("Couldn't Join", $"BYOND couldn't start the game: {ex.Message}", null, "OK"); }
+        finally { Overlay(null); _joining = false; }
     }
 
     // ---------- friends ----------

@@ -28,6 +28,10 @@ Based on the approach of the MIT-licensed [SS13 Launcher](https://github.com/spa
   (the non-member wait) runs in full; once the game window opens the launcher closes the pager DreamSeeker started.
   Nothing of BYOND's is modified, decompiled or skipped.
 - If an installed BYOND is already open, the launcher asks you to quit it first (BYOND runs one pager at a time).
+- **BYOND versions (Options):** "Check for BYOND updates at launch" (on by default, follows the latest public release
+  from `version.txt`); a drop-down of every build in BYOND's archive (byond.com/download/build/, newest two major
+  versions) to downgrade or pin a build; "Reinstall & Relaunch" downloads the current build again and restarts.
+- A "Joining World" overlay shows progress while BYOND starts the game.
 
 ## Art and fonts
 Everything in `Assets/` comes from the DMG team's own files; no generated art.

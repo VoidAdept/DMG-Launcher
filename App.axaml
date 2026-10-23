@@ -225,6 +225,21 @@
       <Setter Property="Foreground" Value="{StaticResource Text}" />
     </Style>
 
+    <!-- dark drop-downs -->
+    <Style Selector="ComboBox.field">
+      <Setter Property="Height" Value="44" />
+      <Setter Property="FontSize" Value="15" />
+      <Setter Property="Background" Value="#0E0C1C" />
+      <Setter Property="BorderBrush" Value="{StaticResource FieldBorder}" />
+      <Setter Property="Foreground" Value="{StaticResource Text}" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="ComboBox.field:pointerover /template/ Border#Background">
+      <Setter Property="Background" Value="#0E0C1C" />
+      <Setter Property="BorderBrush" Value="#6A6390" />
+    </Style>
+
     <!-- Holactie: slow float -->
     <Style Selector="Image.float">
       <Style.Animations>

@@ -10,6 +10,8 @@ public class Settings
 
     public List<string> Friends { get; set; } = [];
     public bool CheckUpdatesOnStart { get; set; } = true;
+    public bool CheckByondUpdatesOnStart { get; set; } = true;
+    public string? ByondVersion { get; set; } // null = latest public release
 
     public static Settings Load()
     {

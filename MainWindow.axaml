@@ -199,7 +199,7 @@
               </Button>
             </Grid>
             <TextBlock DockPanel.Dock="Bottom" FontSize="13" LineHeight="19.5" TextWrapping="Wrap" Foreground="{StaticResource Muted2}" Margin="0,12,0,0"
-                       Text="BYOND Client is required to be running in the background to play DMG. Shutting down BYOND will terminate this client." />
+                       Text="Joining opens BYOND's own game window. Free BYOND accounts see BYOND's short &quot;Your Game Is Starting&quot; screen first." />
             <Border DockPanel.Dock="Top" Margin="0,14,0,8" Padding="16,0,16,8" BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1">
               <Grid ColumnDefinitions="*,140,170">
                 <TextBlock Classes="label" Text="World" />
@@ -252,12 +252,16 @@
                 <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
                   <TextBlock Classes="label" Text="BYOND Client" />
                 </Border>
-                <TextBlock Name="ByondDirText" FontSize="16" TextWrapping="Wrap" />
                 <TextBlock Name="ByondVersionText" FontSize="16" />
-                <StackPanel Orientation="Horizontal" Spacing="16">
-                  <Button Classes="ghost" Content="CHECK FOR BYOND UPDATE" Click="CheckByond_Click" />
-                  <TextBlock Name="ByondStatus" FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" />
+                <TextBlock Name="ByondDirText" FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+                <CheckBox Name="ByondUpdatesOnStart" FontFamily="{StaticResource TextBoldFont}" Content="Check for BYOND updates at launch"
+                          IsCheckedChanged="ByondUpdatesOnStart_Changed" />
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <ComboBox Name="ByondVersionPick" Classes="field" Width="300" PlaceholderText="Loading versions…" />
+                  <Button Classes="ghost" Content="INSTALL" Click="InstallByond_Click" />
+                  <Button Classes="ghost" Content="REINSTALL &amp; RELAUNCH" Click="ReinstallByond_Click" />
                 </StackPanel>
+                <TextBlock Name="ByondStatus" FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
               </StackPanel>
 
               <StackPanel Spacing="10">
@@ -293,6 +297,22 @@
                      Text="This is BYOND's own sign-in page. Your password goes to byond.com only." />
           <Border Name="WebHost" Height="380" Background="#FFFFFF" />
           <Button Classes="ghost" HorizontalAlignment="Right" Content="CANCEL" Click="CancelSignIn_Click" />
+        </StackPanel>
+      </Border>
+    </Panel>
+
+    <!-- ============ Joining World ============ -->
+    <Panel Name="JoinOverlay" IsVisible="False" Background="#B805040D">
+      <Border Width="460" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="26,24,26,24"
+              Background="#110E20" BorderBrush="#80E0B458" BorderThickness="1" BoxShadow="0 18 60 0 #B3000000">
+        <StackPanel Spacing="14">
+          <Grid ColumnDefinitions="Auto,*">
+            <TextBlock Classes="h1" FontSize="26" Text="Joining World" />
+            <Border Grid.Column="1" Height="1" Background="#47E0B458" VerticalAlignment="Center" Margin="14,0,0,0" />
+          </Grid>
+          <TextBlock Name="JoinWorldName" FontSize="16" TextWrapping="Wrap" />
+          <TextBlock Name="JoinStatus" FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
+          <ProgressBar IsIndeterminate="True" Height="4" MinHeight="4" CornerRadius="0" Foreground="#C8972F" Background="#14FFFFFF" />
         </StackPanel>
       </Border>
     </Panel>

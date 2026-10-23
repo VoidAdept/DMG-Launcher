@@ -20,7 +20,9 @@ Joining hands the server's `byond://` address to BYOND, exactly like the hub's P
 ## integrated-client branch (prototype)
 Based on the approach of the MIT-licensed [SS13 Launcher](https://github.com/spacestation13/launcher):
 - **Sign-in:** BYOND's own login page (secure.byond.com) inside the launcher (WebView2). The password goes to byond.com
-  only; "Keep me logged in" is BYOND's cookie in a private profile (`%LOCALAPPDATA%\DMG-Launcher\webview`).
+  only. Each login is BYOND's cookie in its own private profile (`%LOCALAPPDATA%\DMG-Launcher\logins`), kept for 30
+  days. Once a key is stored the login screen offers a drop-down of stored keys plus "Add new login"; Options has
+  "Forget BYOND logins", and resetting the launcher forgets them too. No password is ever stored.
   The launcher reads the key and the `webid` from DMG's hub Play link.
 - **Managed BYOND:** the official zip from byond.com (community mirror as fallback), updated from `version.txt`, kept in
   `%LOCALAPPDATA%\DMG-Launcher\byond\<version>` and trimmed to the files needed to play. No installer or admin rights.
@@ -32,6 +34,7 @@ Based on the approach of the MIT-licensed [SS13 Launcher](https://github.com/spa
   from `version.txt`); a drop-down of every build in BYOND's archive (byond.com/download/build/, newest two major
   versions) to downgrade or pin a build; "Reinstall & Relaunch" downloads the current build again and restarts.
 - A "Joining World" overlay shows progress while BYOND starts the game.
+- **News:** the latest posts from duelmonstersgenesis.com (WordPress REST API), below Server List.
 
 ## Art and fonts
 Everything in `Assets/` comes from the DMG team's own files; no generated art.

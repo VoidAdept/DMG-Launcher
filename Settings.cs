@@ -1,8 +1,21 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace DMGLauncher;
 
-// %APPDATA%\DMG-Launcher\settings.json. Holds no credentials: login is the BYOND pager's.
+// A BYOND key the launcher keeps a byond.com login for. The login itself (BYOND's cookie) lives in the browser
+// profile `Profile`; this record only names it and dates it.
+public class StoredKey
+{
+    public static readonly TimeSpan Lifetime = TimeSpan.FromDays(30);
+    public string Key { get; set; } = "";
+    public string Profile { get; set; } = "";
+    public DateTime SignedInUtc { get; set; }
+    [JsonIgnore] public bool Expired => DateTime.UtcNow - SignedInUtc > Lifetime;
+    [JsonIgnore] public int DaysLeft => Math.Max(0, (int)Math.Ceiling((SignedInUtc + Lifetime - DateTime.UtcNow).TotalDays));
+}
+
+// %APPDATA%\DMG-Launcher\settings.json. Holds no passwords: BYOND logins are BYOND's own cookies (see StoredKey).
 public class Settings
 {
     public static readonly string Dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DMG-Launcher");
@@ -12,6 +25,8 @@ public class Settings
     public bool CheckUpdatesOnStart { get; set; } = true;
     public bool CheckByondUpdatesOnStart { get; set; } = true;
     public string? ByondVersion { get; set; } // null = latest public release
+    public List<StoredKey> Keys { get; set; } = [];
+    public string? LastKey { get; set; }
 
     public static Settings Load()
     {

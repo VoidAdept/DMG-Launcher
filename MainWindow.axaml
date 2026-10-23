@@ -72,19 +72,18 @@
           <TextBlock Classes="h1" Text="Log In" />
           <Border Grid.Column="1" Height="1" Background="#47E0B458" VerticalAlignment="Center" Margin="14,0,0,0" />
         </Grid>
-        <TextBlock Classes="bold" FontSize="14" Text="BYOND Key:" Margin="0,0,0,6" />
-        <Panel>
-          <TextBox Name="KeyBox" Classes="field" IsReadOnly="True" Padding="12,0,40,0" />
-          <Path Name="KeyCheck" Data="M3.5,9.5 L7,13 L14.5,5" Stroke="#7FCF8A" StrokeThickness="2"
-                Width="18" Height="18" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" />
-        </Panel>
-        <WrapPanel Margin="0,6,0,0">
-          <TextBlock Name="KeySource" Classes="muted" Margin="0,0,4,0" />
-          <Button Name="PagerLink" Classes="link" FontSize="13" Click="SignIn_Click" />
-        </WrapPanel>
+        <!-- Hidden until a BYOND login has been stored -->
+        <StackPanel Name="KeySection" IsVisible="False">
+          <TextBlock Classes="bold" FontSize="14" Text="BYOND Key:" Margin="0,0,0,6" />
+          <ComboBox Name="KeyPick" Classes="field" Width="366" SelectionChanged="KeyPick_Changed" />
+          <WrapPanel Margin="0,6,0,0">
+            <TextBlock Name="KeySource" Classes="muted" Margin="0,0,4,0" />
+            <Button Name="PagerLink" Classes="link" FontSize="13" Click="SignIn_Click" />
+          </WrapPanel>
+        </StackPanel>
         <Border Margin="0,16,0,0" Padding="14,12" Background="#CC0E0C1C" BorderBrush="{StaticResource RowBorder}" BorderThickness="1">
           <TextBlock TextWrapping="Wrap" FontSize="13" LineHeight="19" Foreground="#CFC4B8"
-                     Text="You sign in on BYOND's own website. DMG Launcher never sees or stores your BYOND password." />
+                     Text="You sign in on BYOND's own website. DMG Launcher never sees your BYOND password, and keeps each login for 30 days." />
         </Border>
         <CheckBox Name="UpdatesOnStartLogin" Margin="0,10,0,0" FontFamily="{StaticResource TextBoldFont}"
                   Content="Check for launcher updates on start" IsCheckedChanged="UpdatesOnStart_Changed" />
@@ -169,6 +168,12 @@
               <TextBlock Text="Server List" />
             </StackPanel>
           </Button>
+          <Button Name="NavNews" Classes="nav" AutomationProperties.Name="News" Click="Nav_Click">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Path Classes="diamond" Data="M5,0 L10,5 L5,10 L0,5 Z" Fill="{StaticResource Gold}" VerticalAlignment="Center" />
+              <TextBlock Text="News" />
+            </StackPanel>
+          </Button>
           <Button Name="NavFriends" Classes="nav" AutomationProperties.Name="Friends" Click="Nav_Click">
             <StackPanel Orientation="Horizontal" Spacing="12">
               <Path Classes="diamond" Data="M5,0 L10,5 L5,10 L0,5 Z" Fill="{StaticResource Gold}" VerticalAlignment="Center" />
@@ -207,6 +212,22 @@
               </Grid>
             </Border>
             <ScrollViewer><StackPanel Name="ServerRows" Spacing="8" /></ScrollViewer>
+          </DockPanel>
+
+          <!-- News (duelmonstersgenesis.com) -->
+          <DockPanel Name="NewsPanel" IsVisible="False">
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto,Auto" Height="44">
+              <TextBlock Classes="h1" Text="News" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Name="NewsStatus" Classes="muted" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,16,0" />
+              <Button Grid.Column="2" Classes="ghost" Height="40" Padding="16,0" Margin="0,0,10,0" AutomationProperties.Name="Refresh news" Click="RefreshNews_Click">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Path Data="M13.5,8 A5.5,5.5 0 1 1 11.9,4.1 M13.5,2.5 L13.5,5.5 L10.5,5.5" Stroke="{StaticResource Gold}" StrokeThickness="1.6" Width="16" Height="16" VerticalAlignment="Center" />
+                  <TextBlock Text="REFRESH" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+              <Button Grid.Column="3" Classes="ghost" Height="40" Padding="16,0" Content="VISIT SITE" Click="VisitSite_Click" />
+            </Grid>
+            <ScrollViewer Margin="0,14,0,0"><StackPanel Name="NewsRows" Spacing="10" /></ScrollViewer>
           </DockPanel>
 
           <!-- Friends -->
@@ -268,13 +289,19 @@
                 <Border BorderBrush="{StaticResource Divider}" BorderThickness="0,0,0,1" Padding="0,0,0,6">
                   <TextBlock Classes="label" Text="Stored data" />
                 </Border>
+                <StackPanel Name="ForgetLoginsRow" Orientation="Horizontal" Spacing="16" IsVisible="False">
+                  <Button Classes="danger" Width="220" Content="FORGET BYOND LOGINS" Click="ForgetLogins_Click" />
+                  <TextBlock Name="ForgetLoginsText" FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="440" />
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="16">
                   <Button Classes="ghost" Width="220" Content="RESET SETTINGS" Click="ResetSettings_Click" />
-                  <TextBlock FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Text="Refreshes the launcher. Should resolve most issues." />
+                  <TextBlock FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="440"
+                             Text="Restores the defaults, forgets stored BYOND logins and restarts. Should resolve most issues." />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="16">
                   <Button Classes="danger" Width="220" Content="CLEAR STORED DATA" Click="ClearData_Click" />
-                  <TextBlock FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Text="Deletes all launcher data &amp; restarts the launcher." />
+                  <TextBlock FontSize="14" Foreground="{StaticResource Muted}" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="440"
+                             Text="Deletes all launcher data, including stored BYOND logins, &amp; restarts the launcher." />
                 </StackPanel>
                 <TextBlock Name="OptionsStatus" FontSize="14" Foreground="{StaticResource Muted}" TextWrapping="Wrap" />
               </StackPanel>

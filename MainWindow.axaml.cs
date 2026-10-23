@@ -7,7 +7,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Controls.Documents;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Microsoft.Web.WebView2.Core;
 using Path = Avalonia.Controls.Shapes.Path;
 
@@ -19,7 +21,10 @@ public partial class MainWindow : Window
     List<World> _worlds = [];
     readonly DispatcherTimer _serverTimer = new() { Interval = TimeSpan.FromSeconds(30) };
     readonly ByondWeb _web;
-    ByondWeb.Session _session = new(null, null, null);
+    ByondWeb.Session _session = ByondWeb.Session.None;
+    StoredKey? _current; // the BYOND key picked on the login screen
+    bool _keyPickBusy;
+    DateTime _newsLoaded = DateTime.MinValue;
     string? _byondVersion;
     CancellationTokenSource? _signInCancel;
     TaskCompletionSource<bool>? _ask;
@@ -63,7 +68,7 @@ public partial class MainWindow : Window
         ShowByondInfo();
 
         StartupText.Text = "Checking your BYOND sign-in…";
-        if (!await RefreshSession()) return;
+        if (!await LoadKeys()) return;
         ShowLogin();
     }
 
@@ -145,9 +150,14 @@ public partial class MainWindow : Window
 
     // ---------- window chrome ----------
 
+    // Drag the borderless window from its background only. Drop-downs open on release and don't swallow the press,
+    // so starting a drag on them would eat the release and the list would never open.
     void Root_PointerPressed(object? s, PointerPressedEventArgs e)
     {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e);
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        for (var v = e.Source as Visual; v != null && v != this; v = v.GetVisualParent())
+            if (v is InputElement { Focusable: true }) return;
+        BeginMoveDrag(e);
     }
 
     void Minimise_Click(object? s, RoutedEventArgs e) => WindowState = WindowState.Minimized;
@@ -203,29 +213,70 @@ public partial class MainWindow : Window
         UpdateLogin();
     }
 
-    // Reads the byond.com session (who is signed in + the id BYOND puts in DMG's Play link). False = fatal.
+    async Task WebView2Missing() =>
+        await Fatal("WebView2 Required", "Microsoft Edge WebView2 Runtime is needed for BYOND sign-in (BYOND itself needs it too). Install it from Microsoft, then start the launcher again.");
+
+    // Logins are kept for 30 days: older ones are signed out on byond.com and deleted. Then the last used key is checked.
+    async Task<bool> LoadKeys()
+    {
+        try { foreach (var k in _settings.Keys.Where(k => k.Expired).ToList()) await ForgetKey(k); }
+        catch (WebView2RuntimeNotFoundException) { await WebView2Missing(); return false; }
+        _current = _settings.Keys.FirstOrDefault(k => k.Key == _settings.LastKey) ?? _settings.Keys.FirstOrDefault();
+        return await RefreshSession();
+    }
+
+    // Reads the selected key's byond.com session (who is signed in + the id BYOND puts in DMG's Play link). False = fatal.
     async Task<bool> RefreshSession()
     {
-        try { _session = await _web.CheckSession(); return true; }
-        catch (WebView2RuntimeNotFoundException)
+        _session = ByondWeb.Session.None;
+        if (_current is null) return true;
+        try
         {
-            await Fatal("WebView2 Required", "Microsoft Edge WebView2 Runtime is needed for BYOND sign-in (BYOND itself needs it too). Install it from Microsoft, then start the launcher again.");
-            return false;
+            if (_current.Expired) { await ForgetKey(_current); _current = _settings.Keys.FirstOrDefault(); return await RefreshSession(); }
+            _session = await _web.CheckSession(_current.Profile);
         }
-        catch (Exception ex) { Trace.WriteLine($"session check: {ex.Message}"); _session = new(null, null, null); return true; }
+        catch (WebView2RuntimeNotFoundException) { await WebView2Missing(); return false; }
+        catch (Exception ex) { Trace.WriteLine($"session check: {ex.Message}"); }
+        // The profile may now be signed in as another key (accounts switched on byond.com itself).
+        if (_session.SignedIn && _session.Key != _current.Key) { _current.Key = _session.Key!; _settings.Save(); }
+        return true;
     }
 
     void UpdateLogin()
     {
-        var key = _session.SignedIn ? _session.Key : null;
-        KeyBox.Text = key ?? "Not signed in";
-        KeyCheck.IsVisible = key != null;
-        KeySource.Text = key is null ? "Sign in on BYOND's website to play." : "Signed in on byond.com.";
-        PagerLink.Content = key is null ? "Sign in" : "Sign out";
+        KeySection.IsVisible = _settings.Keys.Count > 0;
+        _keyPickBusy = true;
+        KeyPick.ItemsSource = _settings.Keys.Select(k => k.Key).Append("Add new login…").ToList();
+        KeyPick.SelectedIndex = _current is null ? -1 : _settings.Keys.IndexOf(_current);
+        _keyPickBusy = false;
+        if (_current != null)
+        {
+            var days = _current.DaysLeft;
+            KeySource.Text = _session.SignedIn ? $"Signed in on byond.com · login kept {days} more day{(days == 1 ? "" : "s")}." : "This login has ended on byond.com.";
+            PagerLink.Content = _session.SignedIn ? "Sign out" : "Sign in again";
+        }
+        ForgetLoginsRow.IsVisible = _settings.Keys.Count > 0;
+        ForgetLoginsText.Text = $"Signs out and removes the {_settings.Keys.Count} BYOND login{(_settings.Keys.Count == 1 ? "" : "s")} stored in the launcher.";
     }
 
-    // Shows BYOND's own login page in the sign-in panel; true once signed in.
-    async Task<bool> SignIn()
+    async void KeyPick_Changed(object? s, SelectionChangedEventArgs e)
+    {
+        if (_keyPickBusy || KeyPick.SelectedIndex < 0) return;
+        if (KeyPick.SelectedIndex == _settings.Keys.Count) { await AddLogin(); UpdateLogin(); return; }
+        var pick = _settings.Keys[KeyPick.SelectedIndex];
+        if (pick == _current) return;
+        _current = pick;
+        _settings.LastKey = pick.Key;
+        _settings.Save();
+        KeySource.Text = "Checking this login…";
+        PagerLink.Content = null;
+        ContinueButton.IsEnabled = false;
+        try { if (await RefreshSession()) UpdateLogin(); }
+        finally { ContinueButton.IsEnabled = true; }
+    }
+
+    // Shows BYOND's own login page (in the browser profile `profile`) in the sign-in panel; true once signed in.
+    async Task<bool> ShowSignInPanel(string profile)
     {
         WebLogin.IsVisible = true;
         await Task.Delay(50); // let the panel lay out before placing the browser view over it
@@ -233,21 +284,64 @@ public partial class MainWindow : Window
         var scale = RenderScaling;
         var bounds = new System.Drawing.Rectangle((int)(topLeft.X * scale), (int)(topLeft.Y * scale), (int)(WebHost.Bounds.Width * scale), (int)(WebHost.Bounds.Height * scale));
         _signInCancel = new CancellationTokenSource();
-        bool ok;
-        try { ok = await _web.SignIn(bounds, _signInCancel.Token); }
-        catch (WebView2RuntimeNotFoundException) { ok = false; await Ask("WebView2 Required", "Microsoft Edge WebView2 Runtime is needed for BYOND sign-in.", null, "OK"); }
+        try { return await _web.SignIn(profile, bounds, _signInCancel.Token); }
+        catch (WebView2RuntimeNotFoundException) { await Ask("WebView2 Required", "Microsoft Edge WebView2 Runtime is needed for BYOND sign-in.", null, "OK"); return false; }
         finally { WebLogin.IsVisible = false; }
-        if (ok) await RefreshSession();
+    }
+
+    // "Add new login": signs a key in, in a fresh browser profile, and stores it (replacing an older login of that key).
+    async Task<bool> AddLogin()
+    {
+        var profile = ByondWeb.NewProfile();
+        var s = await ShowSignInPanel(profile) ? await _web.CheckSession(profile) : ByondWeb.Session.None;
+        if (!s.SignedIn) { await _web.Forget(profile); return false; }
+        foreach (var old in _settings.Keys.Where(k => Byond.Ckey(k.Key) == Byond.Ckey(s.Key!)).ToList()) await ForgetKey(old);
+        _current = new StoredKey { Key = s.Key!, Profile = profile, SignedInUtc = DateTime.UtcNow };
+        _settings.Keys.Add(_current);
+        _settings.LastKey = _current.Key;
+        _settings.Save();
+        _session = s;
+        return true;
+    }
+
+    // Signs the selected key in again (its login ended), or adds a first key. True once signed in.
+    async Task<bool> SignIn()
+    {
+        if (_current is null) { var added = await AddLogin(); UpdateLogin(); return added; }
+        if (await ShowSignInPanel(_current.Profile))
+        {
+            _current.SignedInUtc = DateTime.UtcNow; // a fresh login starts a new 30 days
+            _settings.Save();
+        }
+        await RefreshSession();
         UpdateLogin();
         return _session.SignedIn;
+    }
+
+    async Task ForgetKey(StoredKey k)
+    {
+        await _web.Forget(k.Profile);
+        _settings.Keys.Remove(k);
+        if (_settings.LastKey == k.Key) _settings.LastKey = null;
+        _settings.Save();
+    }
+
+    async Task ForgetAllLogins()
+    {
+        foreach (var k in _settings.Keys.ToList()) await ForgetKey(k);
+        _current = null;
+        _session = ByondWeb.Session.None;
     }
 
     void CancelSignIn_Click(object? s, RoutedEventArgs e) => _signInCancel?.Cancel();
 
     async void SignIn_Click(object? s, RoutedEventArgs e)
     {
+        if (_current is null) return;
         if (!_session.SignedIn) { await SignIn(); return; }
-        await _web.SignOut();
+        if (!await Ask("Sign Out", $"Sign {_current.Key} out and remove this login from the launcher?", null, "SIGN OUT", "CANCEL")) return;
+        await ForgetKey(_current);
+        _current = _settings.Keys.FirstOrDefault();
         await RefreshSession();
         UpdateLogin();
     }
@@ -266,7 +360,7 @@ public partial class MainWindow : Window
     async void ShowMain(Button tab)
     {
         // Before logging in, only Options is reachable: no server list, friends or join.
-        NavServers.IsVisible = NavFriends.IsVisible = RailLabel.IsVisible = RailKey.IsVisible = _loggedIn;
+        NavServers.IsVisible = NavNews.IsVisible = NavFriends.IsVisible = RailLabel.IsVisible = RailKey.IsVisible = _loggedIn;
         RailKey.Text = _session.Key ?? "";
         RailLink.Content = _loggedIn ? "Switch account" : "Back to Log In";
         Show(MainView);
@@ -280,9 +374,11 @@ public partial class MainWindow : Window
 
     void SelectTab(Button tab)
     {
-        foreach (var b in new[] { NavServers, NavFriends, NavOptions }) b.Classes.Set("active", b == tab);
+        foreach (var b in new[] { NavServers, NavNews, NavFriends, NavOptions }) b.Classes.Set("active", b == tab);
         ServersPanel.IsVisible = tab == NavServers;
+        NewsPanel.IsVisible = tab == NavNews;
         FriendsPanel.IsVisible = tab == NavFriends;
+        if (tab == NavNews && DateTime.Now - _newsLoaded > TimeSpan.FromMinutes(10)) _ = LoadNews();
         OptionsPanel.IsVisible = tab == NavOptions;
         if (tab == NavOptions) LoadByondVersions();
     }
@@ -347,6 +443,58 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { Overlay(null); await Ask("Couldn't Join", $"BYOND couldn't start the game: {ex.Message}", null, "OK"); }
         finally { Overlay(null); _joining = false; }
+    }
+
+    // ---------- news ----------
+
+    async void RefreshNews_Click(object? s, RoutedEventArgs e) => await LoadNews();
+    void VisitSite_Click(object? s, RoutedEventArgs e) => Byond.OpenUrl(News.Site);
+
+    async Task LoadNews()
+    {
+        NewsStatus.Text = "Loading…";
+        List<Article> articles;
+        try { articles = await News.Latest(); }
+        catch (Exception ex) { NewsStatus.Text = $"Couldn't reach duelmonstersgenesis.com: {ex.Message}"; return; }
+        _newsLoaded = DateTime.Now;
+        NewsStatus.Text = $"Updated {DateTime.Now:t}";
+        NewsRows.Children.Clear();
+        foreach (var a in articles) NewsRows.Children.Add(NewsCard(a));
+        if (articles.Count == 0) NewsRows.Children.Add(new TextBlock { Text = "No news yet.", Foreground = Res<IBrush>("Muted") });
+    }
+
+    Border NewsCard(Article a)
+    {
+        var picture = new Image { Stretch = Stretch.UniformToFill };
+        var frame = new Border { Width = 200, Height = 112, ClipToBounds = true, Background = new SolidColorBrush(Color.Parse("#0E0C1C")), Child = picture, VerticalAlignment = VerticalAlignment.Top };
+        if (a.Image is { } url) LoadPicture(url, picture);
+
+        var text = new StackPanel { Spacing = 6, Margin = new Thickness(16, 0, 0, 0) };
+        text.Children.Add(new TextBlock { Text = a.Title, FontSize = 18, Classes = { "bold" }, TextWrapping = TextWrapping.Wrap });
+        text.Children.Add(new TextBlock { Text = a.Date.ToString("d MMMM yyyy"), FontSize = 13, Foreground = Res<IBrush>("Muted2") });
+        text.Children.Add(new TextBlock { Text = a.Excerpt, FontSize = 14, Foreground = Res<IBrush>("Muted"), TextWrapping = TextWrapping.Wrap, MaxLines = 3, TextTrimming = TextTrimming.WordEllipsis });
+        var more = new Button { Classes = { "link" }, Content = "Read more", FontSize = 14, HorizontalAlignment = HorizontalAlignment.Left };
+        Avalonia.Automation.AutomationProperties.SetName(more, $"Read more: {a.Title}");
+        more.Click += (_, _) => { if (News.IsSiteUrl(a.Link)) Byond.OpenUrl(a.Link); };
+        text.Children.Add(more);
+
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        Grid.SetColumn(text, 1);
+        grid.Children.AddRange([frame, text]);
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.Parse("#08FFFFFF")),
+            BorderBrush = new SolidColorBrush(Color.Parse("#332E4C")),
+            BorderThickness = new Thickness(1),
+            Padding = new Thickness(14),
+            Child = grid,
+        };
+    }
+
+    static async void LoadPicture(string url, Image target)
+    {
+        try { target.Source = new Bitmap(new MemoryStream(await Byond.Http.GetByteArrayAsync(url))); }
+        catch (Exception ex) { Trace.WriteLine($"news image: {ex.Message}"); } // ponytail: the card just stays imageless
     }
 
     // ---------- friends ----------
@@ -438,17 +586,30 @@ public partial class MainWindow : Window
         _settings.Save();
     }
 
-    void ResetSettings_Click(object? s, RoutedEventArgs e)
+    async void ForgetLogins_Click(object? s, RoutedEventArgs e)
     {
+        if (!await Ask("Forget BYOND Logins", $"Sign out and remove all {_settings.Keys.Count} BYOND login(s) stored in the launcher?",
+                "You'll sign in on BYOND's website again next time.", "FORGET", "CANCEL"))
+            return;
+        try { await ForgetAllLogins(); }
+        catch (Exception ex) { OptionsStatus.Text = $"Couldn't forget every login: {ex.Message}"; }
+        UpdateLogin();
+        ShowLogin();
+    }
+
+    async void ResetSettings_Click(object? s, RoutedEventArgs e)
+    {
+        try { await ForgetAllLogins(); }
+        catch (Exception ex) { OptionsStatus.Text = $"Couldn't forget the BYOND logins: {ex.Message}"; return; }
         new Settings { Friends = _settings.Friends }.Save();
         Restart();
     }
 
     async void ClearData_Click(object? s, RoutedEventArgs e)
     {
-        if (!await Ask("Clear Stored Data", "Delete all stored launcher data, including your friends list?", "The launcher restarts afterwards.", "CLEAR DATA", "CANCEL"))
+        if (!await Ask("Clear Stored Data", "Delete all stored launcher data, including your friends list and BYOND logins?", "The launcher restarts afterwards.", "CLEAR DATA", "CANCEL"))
             return;
-        try { Settings.ClearAll(); }
+        try { await ForgetAllLogins(); Settings.ClearAll(); }
         catch (Exception ex) { OptionsStatus.Text = $"Couldn't clear data: {ex.Message}"; return; }
         Restart();
     }

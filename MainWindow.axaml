@@ -11,9 +11,13 @@
 
     <!-- ============ Startup checks ============ -->
     <Canvas Name="StartupView">
-      <Image Classes="float" Source="/Assets/holactie.png" Canvas.Left="291" Canvas.Top="-81" Width="934" Height="753" Stretch="Uniform">
+      <Image Classes="float" Source="/Assets/witch.png" Canvas.Left="340" Canvas.Top="-6" Width="578" Height="640" Stretch="Uniform">
         <Image.RenderTransform><TranslateTransform /></Image.RenderTransform>
-        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.4" /></Image.Effect>
+        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.3" /></Image.Effect>
+      </Image>
+      <Image Classes="float alt" Source="/Assets/cosmic.png" Canvas.Left="600" Canvas.Top="26" Width="572" Height="600" Stretch="Uniform">
+        <Image.RenderTransform><TranslateTransform /></Image.RenderTransform>
+        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.3" /></Image.Effect>
       </Image>
       <Image Source="/Assets/streaks.png" Canvas.Left="0" Canvas.Top="0" Width="1120" Height="640" Stretch="UniformToFill" ClipToBounds="True" />
       <StackPanel Orientation="Horizontal" Spacing="10" Canvas.Left="30" Canvas.Top="24">
@@ -34,9 +38,13 @@
 
     <!-- ============ Log In (mirrors the BYOND pager) ============ -->
     <Canvas Name="LoginView" IsVisible="False">
-      <Image Classes="float" Source="/Assets/holactie.png" Canvas.Left="291" Canvas.Top="-81" Width="934" Height="753" Stretch="Uniform">
+      <Image Classes="float" Source="/Assets/witch.png" Canvas.Left="340" Canvas.Top="-6" Width="578" Height="640" Stretch="Uniform">
         <Image.RenderTransform><TranslateTransform /></Image.RenderTransform>
-        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.4" /></Image.Effect>
+        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.3" /></Image.Effect>
+      </Image>
+      <Image Classes="float alt" Source="/Assets/cosmic.png" Canvas.Left="600" Canvas.Top="26" Width="572" Height="600" Stretch="Uniform">
+        <Image.RenderTransform><TranslateTransform /></Image.RenderTransform>
+        <Image.Effect><DropShadowEffect BlurRadius="30" OffsetX="0" OffsetY="0" Color="#FFECBE" Opacity="0.3" /></Image.Effect>
       </Image>
       <Image Source="/Assets/streaks.png" Canvas.Left="0" Canvas.Top="0" Width="1120" Height="640" Stretch="UniformToFill" ClipToBounds="True" />
       <Rectangle Width="1120" Height="640">

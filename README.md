@@ -40,7 +40,7 @@ Based on the approach of the MIT-licensed [SS13 Launcher](https://github.com/spa
 Everything in `Assets/` comes from the DMG team's own files; no generated art.
 - `logo.png` / `logo.ico`: the DMG 20th logo.
 - `background.jpg`: `icons/skin/main/skin_logo_login_bg.png` from the game, tinted blue-purple.
-- `holactie.png`: the login-screen art chosen in the launcher design.
+- `witch.png`, `cosmic.png`: the login-screen art, Void's own pieces (@AVoidAdept).
 - `Fonts/`: the card fonts packed with the game (`icons/skin/rgui/fonts`), renamed. Their name tables were trimmed to the
   Windows English records only, because Avalonia crashes on names that exist in some languages but not others.
 

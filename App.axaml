@@ -240,13 +240,22 @@
       <Setter Property="BorderBrush" Value="#6A6390" />
     </Style>
 
-    <!-- Holactie: slow float -->
+    <!-- Login art: slow float; .alt bobs half a cycle later -->
     <Style Selector="Image.float">
       <Style.Animations>
         <Animation Duration="0:0:6" IterationCount="Infinite" Easing="SineEaseInOut">
           <KeyFrame Cue="0%"><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
           <KeyFrame Cue="50%"><Setter Property="TranslateTransform.Y" Value="-14" /></KeyFrame>
           <KeyFrame Cue="100%"><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+    <Style Selector="Image.float.alt">
+      <Style.Animations>
+        <Animation Duration="0:0:6" IterationCount="Infinite" Easing="SineEaseInOut">
+          <KeyFrame Cue="0%"><Setter Property="TranslateTransform.Y" Value="-14" /></KeyFrame>
+          <KeyFrame Cue="50%"><Setter Property="TranslateTransform.Y" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="TranslateTransform.Y" Value="-14" /></KeyFrame>
         </Animation>
       </Style.Animations>
     </Style>

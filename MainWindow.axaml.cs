@@ -531,7 +531,8 @@ public partial class MainWindow : Window
 
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
             if (online) buttons.Children.Add(Cta("JOIN", 44, false, () => Join(w!), 120));
-            var remove = new Button { Classes = { "icon" }, Background = Brushes.Transparent, Content = CrossIcon() };
+            var remove = new Button { Classes = { "icon" }, Background = Brushes.Transparent };
+            remove.Content = CrossIcon(remove);
             ToolTip.SetTip(remove, $"Remove {friend}");
             Avalonia.Automation.AutomationProperties.SetName(remove, $"Remove {friend}");
             remove.Click += (_, _) => { _settings.Friends.Remove(friend); _settings.Save(); RenderFriends(); };
@@ -681,12 +682,13 @@ public partial class MainWindow : Window
         },
     };
 
-    static Control CrossIcon() => new Path
+    // Stroke follows the button's Foreground (hover colour) without a reflection binding, so trimming keeps it working.
+    static Control CrossIcon(Button owner) => new Path
     {
         Data = Geometry.Parse("M3,3 L13,13 M13,3 L3,13"),
         Width = 16,
         Height = 16,
         StrokeThickness = 1.8,
-        [!Shape.StrokeProperty] = new Avalonia.Data.Binding("Foreground") { RelativeSource = new Avalonia.Data.RelativeSource(Avalonia.Data.RelativeSourceMode.FindAncestor) { AncestorType = typeof(Button) } },
+        [!Shape.StrokeProperty] = owner[!Button.ForegroundProperty],
     };
 }

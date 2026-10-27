@@ -153,14 +153,17 @@
         </Rectangle.Fill>
       </Rectangle>
 
+      <!-- The full-size wordmark would run under the content panel (left 372), so the rail's copy is scaled to fit. -->
       <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="30,24,0,0">
         <Image Source="/Assets/logo-trim.png" Width="120" Height="136" />
-        <StackPanel VerticalAlignment="Center" Spacing="0">
-          <TextBlock Classes="wmgold" Text="Duel Monsters" />
-          <local:OutlinedText Text="GENESIS" Font="{StaticResource NameFont}" FontSize="42" LetterSpacing="8">
-        <local:OutlinedText.Effect><DropShadowEffect BlurRadius="6" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.85" /></local:OutlinedText.Effect>
-      </local:OutlinedText>
-        </StackPanel>
+        <Viewbox Width="196" Stretch="Uniform" StretchDirection="DownOnly" VerticalAlignment="Center">
+          <StackPanel Spacing="0" Margin="0,0,0,8">
+            <TextBlock Classes="wmgold" Text="Duel Monsters" />
+            <local:OutlinedText Text="GENESIS" Font="{StaticResource NameFont}" FontSize="42" LetterSpacing="8">
+              <local:OutlinedText.Effect><DropShadowEffect BlurRadius="6" OffsetX="0" OffsetY="2" Color="Black" Opacity="0.85" /></local:OutlinedText.Effect>
+            </local:OutlinedText>
+          </StackPanel>
+        </Viewbox>
       </StackPanel>
       <DockPanel Width="282" HorizontalAlignment="Left" Margin="30,24,30,24">
         <StackPanel DockPanel.Dock="Bottom" Spacing="3">

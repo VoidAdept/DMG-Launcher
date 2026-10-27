@@ -6,13 +6,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>DMG-Launcher</AssemblyName>
     <RootNamespace>DMGLauncher</RootNamespace>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <ApplicationIcon>Assets\logo.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>true</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <!-- Size: trimmed + compressed single file (~25 MB instead of ~100 MB). JSON is source-generated (Json in Settings.cs). -->
+    <PublishTrimmed>true</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <DebugType>none</DebugType>
+    <!-- WebView2's .NET wrapper uses classic COM interop, which trimming turns off by default. -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <!-- ponytail: keeps a stray nested clone of this repo out of the build -->
     <DefaultItemExcludes>$(DefaultItemExcludes);DMG-Launcher\**</DefaultItemExcludes>
   </PropertyGroup>
@@ -24,5 +31,8 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.22" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.14" />
+  </ItemGroup>
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Microsoft.Web.WebView2.Core" />
   </ItemGroup>
 </Project>

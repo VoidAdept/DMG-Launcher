@@ -34,7 +34,7 @@ public sealed class ByondWeb
         public static readonly Session None = new(null, null);
         public bool SignedIn => Key != null && WebId != null && !WebId.Equals("guest", StringComparison.OrdinalIgnoreCase);
     }
-    record PageState(string? key, string? href, bool ready, string? url);
+    internal record PageState(string? key, string? href, bool ready, string? url);
 
     readonly Window _owner;
     CoreWebView2Environment? _env;
@@ -56,6 +56,7 @@ public sealed class ByondWeb
         // The single-profile prototype kept its login in "webview"; that login was never subject to the 30-day rule.
         try { if (Directory.Exists(Path.Combine(Data, "webview"))) Directory.Delete(Path.Combine(Data, "webview"), true); }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+        ManagedByond.PurgeWebCaches(Profiles, components: true); // before this session's browser starts; cookies (the logins) stay
     }
 
     public static string NewProfile() => "k" + Guid.NewGuid().ToString("N");
@@ -66,7 +67,7 @@ public sealed class ByondWeb
         _view?.Close();
         _view = null;
         var hwnd = _owner.TryGetPlatformHandle()?.Handle ?? throw new InvalidOperationException("no window handle");
-        _env ??= await CoreWebView2Environment.CreateAsync(null, Profiles);
+        _env ??= await CoreWebView2Environment.CreateAsync(null, Profiles, new CoreWebView2EnvironmentOptions("--disable-component-update"));
         var options = _env.CreateCoreWebView2ControllerOptions();
         options.ProfileName = profile;
         var view = await _env.CreateCoreWebView2ControllerAsync(hwnd, options);
@@ -91,7 +92,7 @@ public sealed class ByondWeb
             Log($"page: {Regex.Replace(masked, "\"key\":\"[^\"]*\"", "\"key\":\"<hidden>\"")}");
             _lastRead = json;
         }
-        return json == "null" ? null : JsonSerializer.Deserialize<PageState>(json);
+        return json == "null" ? null : JsonSerializer.Deserialize(json, Json.Default.PageState);
     }
 
     static async Task NavigateAndWait(CoreWebView2 web, string url)

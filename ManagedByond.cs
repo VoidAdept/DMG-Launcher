@@ -49,6 +49,8 @@ public static class ManagedByond
     // (checked at launch unless the player turned that off). Keeps working offline with what is installed.
     public static async Task<string> Prepare(string? chosen, bool checkForUpdates, IProgress<string>? progress = null)
     {
+        if (!Process.GetProcessesByName("dreamseeker").Any(p => { try { return p.MainModule?.FileName?.StartsWith(Root, StringComparison.OrdinalIgnoreCase) == true; } catch (Exception) { return false; } }))
+            PurgeWebCaches(WebView2Data);
         if (chosen != null && IsVersion(chosen)) return await Install(chosen, progress);
         if (!checkForUpdates && InstalledVersion is { } have) return have;
         string latest;
@@ -96,6 +98,20 @@ public static class ManagedByond
         Directory.Move(tmp, dir);
         Cleanup(version);
         return version;
+    }
+
+    // WebView2 (BYOND's own browser panes, and the launcher's sign-in) keeps disk caches that grow to tens of MB.
+    // They only speed up repeat page loads, so they're dropped at startup while nothing is using them.
+    static readonly string[] CacheDirs = ["Cache", "Code Cache", "GPUCache", "GrShaderCache", "GraphiteDawnCache", "DawnCache", "DawnWebGPUCache", "DawnGraphiteCache", "ShaderCache", "CacheStorage", "ScriptCache", "Crashpad"];
+    // Add-ons Edge's component updater fetches in the background (DRM, ad-block lists, speech, hyphenation): ~58 MB that
+    // a login page never uses. Only dropped where updates are switched off, or they'd be fetched again every session.
+    static readonly string[] ComponentDirs = ["WidevineCdm", "component_crx_cache", "Subresource Filter", "Speech Recognition", "hyphen-data"];
+    public static void PurgeWebCaches(string dataDir, bool components = false)
+    {
+        if (!Directory.Exists(dataDir)) return;
+        foreach (var d in Directory.EnumerateDirectories(dataDir, "*", SearchOption.AllDirectories)
+                     .Where(d => CacheDirs.Contains(Path.GetFileName(d)) || components && ComponentDirs.Contains(Path.GetFileName(d))).ToList())
+            try { if (Directory.Exists(d)) Directory.Delete(d, true); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
     }
 
     static void Cleanup(string keep)

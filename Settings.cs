@@ -31,17 +31,17 @@ public class Settings
 
     // Keys and LastKey are written only as this DPAPI blob (Windows user account bound): another account or machine
     // can't read it, and it fails closed to "no stored logins".
-    record Logins(List<StoredKey> Keys, string? LastKey);
+    internal record Logins(List<StoredKey> Keys, string? LastKey);
     static readonly byte[] Entropy = "DMG-Launcher logins v1"u8.ToArray();
     public string? StoredLogins
     {
         get => Keys.Count == 0 && LastKey == null ? null : Convert.ToBase64String(ProtectedData.Protect(
-            JsonSerializer.SerializeToUtf8Bytes(new Logins(Keys, LastKey)), Entropy, DataProtectionScope.CurrentUser));
+            JsonSerializer.SerializeToUtf8Bytes(new Logins(Keys, LastKey), Json.Default.Logins), Entropy, DataProtectionScope.CurrentUser));
         set
         {
             try
             {
-                var l = value == null ? null : JsonSerializer.Deserialize<Logins>(ProtectedData.Unprotect(Convert.FromBase64String(value), Entropy, DataProtectionScope.CurrentUser));
+                var l = value == null ? null : JsonSerializer.Deserialize(ProtectedData.Unprotect(Convert.FromBase64String(value), Entropy, DataProtectionScope.CurrentUser), Json.Default.Logins);
                 (Keys, LastKey) = (l?.Keys ?? [], l?.LastKey);
             }
             catch (Exception e) when (e is CryptographicException or FormatException or JsonException) { (Keys, LastKey) = ([], null); }
@@ -59,7 +59,7 @@ public class Settings
         try
         {
             var text = File.ReadAllText(FilePath);
-            var s = JsonSerializer.Deserialize<Settings>(text) ?? new();
+            var s = JsonSerializer.Deserialize(text, Json.Default.Settings) ?? new();
             if (text.Contains("\"Keys\"")) s.Save(); // re-save older plain-text logins encrypted
             return s;
         }
@@ -70,8 +70,15 @@ public class Settings
     public void Save()
     {
         Directory.CreateDirectory(Dir);
-        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+        File.WriteAllText(FilePath, JsonSerializer.Serialize(this, Json.Default.Settings));
     }
 
     public static void ClearAll() { if (Directory.Exists(Dir)) Directory.Delete(Dir, true); }
 }
+
+// Source-generated JSON, so the trimmed single-file build needs no reflection.
+[JsonSourceGenerationOptions(WriteIndented = true)]
+[JsonSerializable(typeof(Settings))]
+[JsonSerializable(typeof(Settings.Logins))]
+[JsonSerializable(typeof(ByondWeb.PageState))]
+partial class Json : JsonSerializerContext;

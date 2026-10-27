@@ -8,7 +8,8 @@ the free Yu-Gi-Oh! fan game on BYOND. Windows only.
   the launcher never sees or stores it. Each login is kept for 30 days, and you can store several BYOND keys and pick
   one from a drop-down.
 - **Its own BYOND:** on first start the launcher asks permission, then downloads the official BYOND client from
-  byond.com and keeps it in its own folder. No installer, no admin rights, and any BYOND you already have is left alone.
+  byond.com and keeps it in its own folder. No installer, and any BYOND you already have is left alone. On PCs without
+  Microsoft's DirectX 9 components, the first join runs BYOND's own DirectX setup, which asks Windows for permission once.
 - **Server List:** DMG servers from the BYOND hub, with player counts and a Join button.
 - **News:** the latest posts from [duelmonstersgenesis.com](https://duelmonstersgenesis.com/).
 - **Friends:** track BYOND keys and see which DMG server they're on.

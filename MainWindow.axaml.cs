@@ -61,7 +61,7 @@ public partial class MainWindow : Window
             await CheckForUpdate();
         }
 
-        // The launcher keeps its own copy of the official BYOND client, so no BYOND install or admin rights are needed.
+        // The launcher keeps its own copy of the official BYOND client, so no BYOND install is needed (only DirectX, once, if missing: see Join).
         // First run: nothing gets downloaded until the user agrees.
         if (ManagedByond.InstalledVersion == null)
         {
@@ -447,6 +447,20 @@ public partial class MainWindow : Window
                 if (!await Ask("Close BYOND First", "Another copy of BYOND is open (the pager or a game window).",
                         "BYOND only runs one pager at a time, so that copy would take over the join. Quit it from the system tray, then press Retry.", "RETRY", "CANCEL"))
                 { ServerStatus.Text = "Join cancelled."; return; }
+            }
+            if (ManagedByond.DirectXMissing)
+            {
+                Overlay(null);
+                if (!await Ask("Install DirectX?", "BYOND needs Microsoft's DirectX 9 components, which aren't on this PC yet.",
+                        "BYOND's official setup for them (included with BYOND) will run now. Windows will ask for permission.", "INSTALL", "CANCEL"))
+                { ServerStatus.Text = "Join cancelled."; return; }
+                Overlay("Installing DirectX…");
+                if (!await ManagedByond.InstallDirectX(_byondVersion!))
+                {
+                    Overlay(null);
+                    await Ask("Couldn't Join", "DirectX wasn't installed, so BYOND can't start.", "Try again and allow the Windows permission prompt.", "OK");
+                    return;
+                }
             }
             Overlay("BYOND is starting your game…");
             var error = await ManagedByond.Connect(_byondVersion!, w.Url, _session.WebId!, new Progress<string>(t => JoinStatus.Text = t));

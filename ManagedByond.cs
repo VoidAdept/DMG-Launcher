@@ -100,6 +100,22 @@ public static class ManagedByond
         return version;
     }
 
+    // DreamSeeker needs Microsoft's DirectX 9 extensions (d3dx9_43.dll), which Windows doesn't include: without them it
+    // quits at once. BYOND's own installer runs the DirectX setup it ships in byond\directx; this runs that same setup.
+    public static bool DirectXMissing => !File.Exists(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.SystemX86), "d3dx9_43.dll"));
+    public static async Task<bool> InstallDirectX(string version)
+    {
+        var setup = Path.Combine(Root, version, "byond", "directx", "DXSETUP.exe");
+        try
+        {
+            using var p = Process.Start(new ProcessStartInfo(setup, "/silent") { UseShellExecute = true, Verb = "runas" })!;
+            await p.WaitForExitAsync();
+            ByondWeb.Log($"DirectX setup exit code {p.ExitCode}");
+        }
+        catch (System.ComponentModel.Win32Exception e) { ByondWeb.Log($"DirectX setup not run: {e.Message}"); } // UAC declined
+        return !DirectXMissing;
+    }
+
     // WebView2 (BYOND's own browser panes, and the launcher's sign-in) keeps disk caches that grow to tens of MB.
     // They only speed up repeat page loads, so they're dropped at startup while nothing is using them.
     static readonly string[] CacheDirs = ["Cache", "Code Cache", "GPUCache", "GrShaderCache", "GraphiteDawnCache", "DawnCache", "DawnWebGPUCache", "DawnGraphiteCache", "ShaderCache", "CacheStorage", "ScriptCache", "Crashpad"];
@@ -168,7 +184,13 @@ public static class ManagedByond
         {
             await Task.Delay(1000);
             seeker.Refresh();
-            if (seeker.HasExited) return "BYOND closed before the game opened.";
+            if (seeker.HasExited)
+            {
+                ByondWeb.Log($"DreamSeeker exited early, code 0x{seeker.ExitCode:X8}");
+                return seeker.ExitCode == unchecked((int)0xC0000135) // STATUS_DLL_NOT_FOUND
+                    ? "BYOND couldn't start because a Windows component it needs is missing (error 0xC0000135)."
+                    : $"BYOND closed before the game opened (exit code 0x{seeker.ExitCode:X8}).";
+            }
             opened = IsGameTitle(seeker.MainWindowTitle);
         }
         if (!opened) return "The game did not open within 3 minutes.";

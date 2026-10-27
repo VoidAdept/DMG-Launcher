@@ -4,12 +4,12 @@
              RequestedThemeVariant="Dark">
   <Application.Resources>
     <!-- Card fonts packed with the game (icons/skin/rgui/fonts) -->
-    <FontFamily x:Key="NameFont">avares://DMG-Launcher/Assets/Fonts#Yu-Gi-Oh! Matrix Small Caps 1</FontFamily>
-    <FontFamily x:Key="ButtonFont">avares://DMG-Launcher/Assets/Fonts#MatrixBoldSmallCaps</FontFamily>
-    <FontFamily x:Key="TypeFont">avares://DMG-Launcher/Assets/Fonts#Yu-Gi-Oh!ITCStoneSerifSmallCaps</FontFamily>
-    <FontFamily x:Key="TextFont">avares://DMG-Launcher/Assets/Fonts#MatrixBook</FontFamily>
-    <FontFamily x:Key="TextBoldFont">avares://DMG-Launcher/Assets/Fonts#MatrixBold</FontFamily>
-    <FontFamily x:Key="NumberFont">avares://DMG-Launcher/Assets/Fonts#Yugioh Rush Duel Numbers V4</FontFamily>
+    <FontFamily x:Key="NameFont">avares://DMG-Launcher/Assets/Fonts#DMG Display</FontFamily>
+    <FontFamily x:Key="ButtonFont">avares://DMG-Launcher/Assets/Fonts#DMG Button</FontFamily>
+    <FontFamily x:Key="TypeFont">avares://DMG-Launcher/Assets/Fonts#DMG Label</FontFamily>
+    <FontFamily x:Key="TextFont">avares://DMG-Launcher/Assets/Fonts#DMG Text</FontFamily>
+    <FontFamily x:Key="TextBoldFont">avares://DMG-Launcher/Assets/Fonts#DMG Text SemiBold</FontFamily>
+    <FontFamily x:Key="NumberFont">avares://DMG-Launcher/Assets/Fonts#DMG Numbers</FontFamily>
 
     <SolidColorBrush x:Key="Gold" Color="#E0B458" />
     <SolidColorBrush x:Key="GoldHover" Color="#F4CF7C" />

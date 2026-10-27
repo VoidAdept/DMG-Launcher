@@ -1,52 +1,99 @@
 # DMG Launcher
 
-Third-party launcher for [Duel Monsters Genesis](https://www.byond.com/games/EternalDuelistSoul/DuelMonstersGenesis) (Windows).
+A third-party launcher for [Duel Monsters Genesis](https://www.byond.com/games/EternalDuelistSoul/DuelMonstersGenesis),
+the free Yu-Gi-Oh! fan game on BYOND. Windows only.
 
-- Checks GitHub Releases for a newer launcher and offers to update itself.
-- Makes sure BYOND is installed (otherwise sends you to the BYOND download page) and running (3 tries, then quits); closes when BYOND closes.
-- Mirrors the BYOND pager's login. The launcher never asks for or stores your password; "Create an Account" opens BYOND's sign-up page.
-- **Server List**: DMG servers from the BYOND hub, with player counts and a Join button.
-- **Friends**: track BYOND keys and see which DMG server they're on, with a Join button.
-- **Options**: version, update check, reset settings, clear stored data (`%APPDATA%\DMG-Launcher`).
+## Features
+- **Sign-in:** BYOND's own login page (secure.byond.com) opens inside the launcher. Your password goes to byond.com only;
+  the launcher never sees or stores it. Each login is kept for 30 days, and you can store several BYOND keys and pick
+  one from a drop-down.
+- **Its own BYOND:** on first start the launcher asks permission, then downloads the official BYOND client from
+  byond.com and keeps it in its own folder. No installer, no admin rights, and any BYOND you already have is left alone.
+- **Server List:** DMG servers from the BYOND hub, with player counts and a Join button.
+- **News:** the latest posts from [duelmonstersgenesis.com](https://duelmonstersgenesis.com/).
+- **Friends:** track BYOND keys and see which DMG server they're on.
+- **Options:** launcher updates, BYOND version (check for updates at launch, pin or downgrade to any archived build,
+  reinstall), forget stored logins, reset settings, clear stored data.
+- **Self-update:** checks GitHub Releases for a newer launcher and offers to update itself.
 
-Joining hands the server's `byond://` address to BYOND, exactly like the hub's Play button. BYOND's normal loading and membership screens are never skipped.
+Joining a world starts BYOND's own game window with the server's address, exactly like the hub's Play button.
+BYOND's normal loading screens and the free-account "Your Game Is Starting" wait always run in full. Nothing of BYOND's
+is modified, decompiled or skipped.
 
-## Not supported
-- Password-protected flag (the BYOND hub doesn't publish it).
-- General online status for friends (BYOND has no public API for it; friends show as online only while on a DMG server).
-- Logging in to BYOND from inside the launcher.
-- Linux / macOS.
+## Install a release
+1. Open the repository's [Releases](../../releases) page and download `DMG-Launcher.exe` from the latest release.
+2. Put it in any folder you like (for example `Documents\DMG Launcher`) and run it. There is no installer, and the
+   .NET runtime is built into the exe.
+3. Windows SmartScreen may warn about an unrecognised app because the exe isn't code-signed. Choose
+   **More info → Run anyway**.
+4. On first start, agree to the BYOND download, then sign in to BYOND.
 
-## integrated-client branch (prototype)
-Based on the approach of the MIT-licensed [SS13 Launcher](https://github.com/spacestation13/launcher):
-- **Sign-in:** BYOND's own login page (secure.byond.com) inside the launcher (WebView2). The password goes to byond.com
-  only. Each login is BYOND's cookie in its own private profile (`%LOCALAPPDATA%\DMG-Launcher\logins`), kept for 30
-  days. Once a key is stored the login screen offers a drop-down of stored keys plus "Add new login"; Options has
-  "Forget BYOND logins", and resetting the launcher forgets them too. No password is ever stored.
-  The launcher reads the key and the `webid` from DMG's hub Play link.
-- **Managed BYOND:** the official zip from byond.com (community mirror as fallback), updated from `version.txt`, kept in
-  `%LOCALAPPDATA%\DMG-Launcher\byond\<version>` and trimmed to the files needed to play. No installer or admin rights.
-- **Joining:** starts that copy's DreamSeeker with the world address. BYOND's own "Your Game Is Starting" screen
-  (the non-member wait) runs in full; once the game window opens the launcher closes the pager DreamSeeker started.
-  Nothing of BYOND's is modified, decompiled or skipped.
-- If an installed BYOND is already open, the launcher asks you to quit it first (BYOND runs one pager at a time).
-- **BYOND versions (Options):** "Check for BYOND updates at launch" (on by default, follows the latest public release
-  from `version.txt`); a drop-down of every build in BYOND's archive (byond.com/download/build/, newest two major
-  versions) to downgrade or pin a build; "Reinstall & Relaunch" downloads the current build again and restarts.
-- A "Joining World" overlay shows progress while BYOND starts the game.
-- **News:** the latest posts from duelmonstersgenesis.com (WordPress REST API), below Server List.
+**Requirements:** Windows 10 or 11 (64-bit) and the Microsoft Edge WebView2 Runtime, which Windows 11 and up-to-date
+Windows 10 already include (otherwise get it from [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/)).
 
-## Art and fonts
-Everything in `Assets/` comes from the DMG team's own files; no generated art.
-- `logo.png` / `logo.ico`: the DMG 20th logo.
-- `background.jpg`: `icons/skin/main/skin_logo_login_bg.png` from the game, tinted blue-purple.
-- `witch.png`, `cosmic.png`: the login-screen art, Void's own pieces (@AVoidAdept).
-- `Fonts/`: the card fonts packed with the game (`icons/skin/rgui/fonts`), renamed. Their name tables were trimmed to the
-  Windows English records only, because Avalonia crashes on names that exist in some languages but not others.
+**Updating:** the launcher checks for new releases on start (Options can turn this off) and replaces itself.
 
-## Build
+**Uninstalling:** delete the exe, then these folders:
+- `%APPDATA%\DMG-Launcher`: settings and friends list.
+- `%LOCALAPPDATA%\DMG-Launcher`: the launcher's BYOND copy, stored BYOND logins and `launcher.log`.
+
+## Build it yourself
+You need Windows 10/11 (64-bit), [Git](https://git-scm.com/) and the [.NET 10 SDK](https://dotnet.microsoft.com/download).
+
+```
+git clone https://github.com/VoidAdept/DMG-Launcher.git
+cd DMG-Launcher
+```
+
+Run it from source:
+```
+dotnet run
+```
+
+Run the self-test (server-list parsing, key names and update-version checks; no network or UI):
 ```
 dotnet run -- --selftest
+```
+
+Build the single-file exe (self-contained, win-x64) into `out\`:
+```
 dotnet publish -c Release -o out
 ```
-Pushing a `v*` tag builds `DMG-Launcher.exe` and attaches it to a GitHub release, which is what the updater downloads.
+The result is `out\DMG-Launcher.exe`; copy it anywhere and run it as above.
+
+### Making a release
+Bump `<Version>` in `DMGLauncher.csproj`, commit, then push a tag such as `v0.3.0`. The GitHub workflow runs the
+self-test, publishes the exe with that version and attaches it to a GitHub release, which is what the launcher's
+self-update downloads.
+
+## Where things are stored
+| Path | Contents |
+| --- | --- |
+| `%APPDATA%\DMG-Launcher\settings.json` | Settings and friends. Stored BYOND keys are encrypted with Windows DPAPI (readable only by your Windows account); no passwords |
+| `%LOCALAPPDATA%\DMG-Launcher\byond\<version>` | The launcher's copy of the official BYOND client |
+| `%LOCALAPPDATA%\DMG-Launcher\logins` | One browser profile per stored BYOND login (BYOND's own cookie, encrypted by WebView2 with DPAPI), kept 30 days |
+| `%LOCALAPPDATA%\DMG-Launcher\launcher.log` | Diagnostic log; BYOND keys and session ids are masked |
+
+## Not supported
+- Password-protected flag on servers (the BYOND hub doesn't publish it).
+- General online status for friends (BYOND has no public API for it; friends show as online only while on a DMG server).
+- Linux and macOS.
+
+## Licence
+The launcher's **source code** is released under the [MIT License](LICENSE).
+
+The MIT License does **not** cover the files in `Assets/`:
+- `witch.png`, `cosmic.png`: artwork by Void (@AVoidAdept), all rights reserved.
+- `logo.png`, `logo-trim.png`, `logo.ico`, `background.jpg`, `streaks.png`: Duel Monsters Genesis artwork from the
+  game's own files.
+- `Fonts/`: the duelmonstersgenesis.com fonts (Alegreya SC, Vollkorn SC, Crimson Pro, Oxanium digits), under the
+  [SIL Open Font License 1.1](Assets/Fonts/OFL.txt).
+
+Approach for BYOND sign-in and joining based on the MIT-licensed
+[SS13 Launcher](https://github.com/spacestation13/launcher). Built with [Avalonia](https://avaloniaui.net/) (MIT) and
+Microsoft Edge WebView2.
+
+*Duel Monsters Genesis* is a 100% free fan game, not affiliated with Konami® or the Yu-Gi-Oh! Trading Card Game®.
+“Yu-Gi-Oh!” and all related names, characters and images are the property of Konami Corporation®, Studio Dice,
+Shueisha, TV Tokyo & Kazuki Takahashi. BYOND is a trademark of BYOND Software.
+[Full disclaimer](https://duelmonstersgenesis.com/disclaimer/)

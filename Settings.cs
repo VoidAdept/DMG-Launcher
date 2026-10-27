@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -25,12 +26,43 @@ public class Settings
     public bool CheckUpdatesOnStart { get; set; } = true;
     public bool CheckByondUpdatesOnStart { get; set; } = true;
     public string? ByondVersion { get; set; } // null = latest public release
-    public List<StoredKey> Keys { get; set; } = [];
-    public string? LastKey { get; set; }
+    [JsonIgnore] public List<StoredKey> Keys { get; set; } = [];
+    [JsonIgnore] public string? LastKey { get; set; }
+
+    // Keys and LastKey are written only as this DPAPI blob (Windows user account bound): another account or machine
+    // can't read it, and it fails closed to "no stored logins".
+    record Logins(List<StoredKey> Keys, string? LastKey);
+    static readonly byte[] Entropy = "DMG-Launcher logins v1"u8.ToArray();
+    public string? StoredLogins
+    {
+        get => Keys.Count == 0 && LastKey == null ? null : Convert.ToBase64String(ProtectedData.Protect(
+            JsonSerializer.SerializeToUtf8Bytes(new Logins(Keys, LastKey)), Entropy, DataProtectionScope.CurrentUser));
+        set
+        {
+            try
+            {
+                var l = value == null ? null : JsonSerializer.Deserialize<Logins>(ProtectedData.Unprotect(Convert.FromBase64String(value), Entropy, DataProtectionScope.CurrentUser));
+                (Keys, LastKey) = (l?.Keys ?? [], l?.LastKey);
+            }
+            catch (Exception e) when (e is CryptographicException or FormatException or JsonException) { (Keys, LastKey) = ([], null); }
+        }
+    }
+
+    // Read once from settings written before encryption, then saved encrypted.
+    [JsonPropertyName("Keys"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<StoredKey>? PlainKeys { get => null; set { if (value != null) Keys = value; } }
+    [JsonPropertyName("LastKey"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PlainLastKey { get => null; set { if (value != null) LastKey = value; } }
 
     public static Settings Load()
     {
-        try { return JsonSerializer.Deserialize<Settings>(File.ReadAllText(FilePath)) ?? new(); }
+        try
+        {
+            var text = File.ReadAllText(FilePath);
+            var s = JsonSerializer.Deserialize<Settings>(text) ?? new();
+            if (text.Contains("\"Keys\"")) s.Save(); // re-save older plain-text logins encrypted
+            return s;
+        }
         catch (Exception e) when (e is FileNotFoundException or DirectoryNotFoundException) { return new(); }
         catch (JsonException) { File.Copy(FilePath, FilePath + ".bad", true); return new(); }
     }

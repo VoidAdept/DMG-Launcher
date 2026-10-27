@@ -34,6 +34,14 @@ static class SelfTest
         Check(Updater.IsNewer("v0.2.0", new Version(0, 1, 0, 0)), "newer tag");
         Check(!Updater.IsNewer("v0.1.0", new Version(0, 1, 0, 0)), "same version (3 vs 4 parts)");
         Check(!Updater.IsNewer("garbage", new Version(0, 1, 0)), "bad tag");
+        var s = new Settings { Keys = [new() { Key = "Some Duelist", Profile = "kabc", SignedInUtc = DateTime.UtcNow }], LastKey = "Some Duelist" };
+        var json = System.Text.Json.JsonSerializer.Serialize(s);
+        Check(!json.Contains("Some Duelist") && !json.Contains("kabc"), "stored logins encrypted on disk");
+        var back = System.Text.Json.JsonSerializer.Deserialize<Settings>(json)!;
+        Check(back.Keys.Single().Profile == "kabc" && back.LastKey == "Some Duelist", "stored logins round-trip");
+        var old = System.Text.Json.JsonSerializer.Deserialize<Settings>("""{"Keys":[{"Key":"Some Duelist","Profile":"kabc"}],"LastKey":"Some Duelist"}""")!;
+        Check(old.Keys.Single().Key == "Some Duelist" && !System.Text.Json.JsonSerializer.Serialize(old).Contains("Some Duelist"), "plain-text logins migrated");
+        Check(System.Text.Json.JsonSerializer.Deserialize<Settings>("""{"StoredLogins":"AAAA"}""")!.Keys.Count == 0, "unreadable blob = no logins");
         Console.WriteLine("selftest OK");
         return 0;
     }

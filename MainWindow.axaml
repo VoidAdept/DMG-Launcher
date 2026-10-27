@@ -125,7 +125,7 @@
       <TextBlock Canvas.Right="30" Canvas.Bottom="24" Width="640" TextAlignment="Right" TextWrapping="Wrap"
                  FontSize="11" LineHeight="16.5" Foreground="#CFC4B8">
         <TextBlock.Effect><DropShadowEffect BlurRadius="3" OffsetX="0" OffsetY="0" Color="#05040D" Opacity="1" /></TextBlock.Effect>
-        <Run FontStyle="Italic" Text="Duel Monsters Genesis" /><Run Text=" is a 100% free fan game, not affiliated with Konami® or the Yu-Gi-Oh! Trading Card Game®. &quot;Yu-Gi-Oh!&quot; and all related names, characters and images are the property of Konami Corporation® and Kazuki Takahashi©. BYOND is a trademark of BYOND Software. All other respective artworks and resources belong to their respective owners." />
+        <Run FontStyle="Italic" Text="Duel Monsters Genesis" /><Run Text=" is a 100% free fan game, not affiliated with Konami® or the Yu-Gi-Oh! Trading Card Game®. “Yu-Gi-Oh!” and all related names, characters and images are the property of Konami Corporation®, Studio Dice, Shueisha, TV Tokyo &amp; Kazuki Takahashi. BYOND is a trademark of BYOND Software. " /><InlineUIContainer BaselineAlignment="Baseline"><Button Classes="link" FontSize="11" Padding="0" Content="Full disclaimer" Click="Disclaimer_Click" /></InlineUIContainer>
       </TextBlock>
 
       <StackPanel Canvas.Left="30" Canvas.Bottom="24" Orientation="Horizontal" Spacing="12">

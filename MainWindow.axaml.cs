@@ -62,6 +62,19 @@ public partial class MainWindow : Window
         }
 
         // The launcher keeps its own copy of the official BYOND client, so no BYOND install or admin rights are needed.
+        // First run: nothing gets downloaded until the user agrees.
+        if (ManagedByond.InstalledVersion == null)
+        {
+            StartupText.Text = "Waiting for permission to install BYOND…";
+            if (!await Ask("Install BYOND?",
+                    "DMG Launcher needs its own copy of the BYOND client to play Duel Monsters Genesis.",
+                    $"The official client will be downloaded from byond.com and stored in {ManagedByond.Root}. It doesn't change any BYOND you may already have installed.",
+                    "INSTALL", "QUIT"))
+            {
+                Close();
+                return;
+            }
+        }
         StartupText.Text = "Preparing BYOND…";
         try { _byondVersion = await ManagedByond.Prepare(_settings.ByondVersion, _settings.CheckByondUpdatesOnStart, new Progress<string>(t => StartupText.Text = t)); }
         catch (Exception ex) { await Fatal("BYOND Unavailable", $"The BYOND client could not be downloaded from byond.com: {ex.Message}"); return; }
@@ -449,6 +462,7 @@ public partial class MainWindow : Window
 
     async void RefreshNews_Click(object? s, RoutedEventArgs e) => await LoadNews();
     void VisitSite_Click(object? s, RoutedEventArgs e) => Byond.OpenUrl(News.Site);
+    void Disclaimer_Click(object? s, RoutedEventArgs e) => Byond.OpenUrl(News.Site + "disclaimer/");
 
     async Task LoadNews()
     {

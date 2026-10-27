@@ -85,7 +85,12 @@ public sealed class ByondWeb
     async Task<PageState?> Read(CoreWebView2Controller view)
     {
         var json = await view.CoreWebView2.ExecuteScriptAsync(ReadPage);
-        if (json != _lastRead) { Log($"page: {Regex.Replace(json, "webid=[0-9a-fA-F]+", "webid=<hidden>")}"); _lastRead = json; }
+        if (json != _lastRead)
+        {
+            var masked = Regex.Replace(json, "webid=[0-9a-fA-F]+", "webid=<hidden>");
+            Log($"page: {Regex.Replace(masked, "\"key\":\"[^\"]*\"", "\"key\":\"<hidden>\"")}");
+            _lastRead = json;
+        }
         return json == "null" ? null : JsonSerializer.Deserialize<PageState>(json);
     }
 

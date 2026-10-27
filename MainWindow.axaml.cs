@@ -463,7 +463,17 @@ public partial class MainWindow : Window
                 }
             }
             Overlay("BYOND is starting your game…");
-            var error = await ManagedByond.Connect(_byondVersion!, w.Url, _session.WebId!, new Progress<string>(t => JoinStatus.Text = t));
+            var progress = new Progress<string>(t => JoinStatus.Text = t);
+            // Where BYOND's pager signs itself in with a saved login, that login can end the byond.com session, so the
+            // web session id arrives dead and BYOND joins as a guest (which DMG refuses). BYOND's own sign-in works there,
+            // and once it has been needed, later joins on this PC go straight to it.
+            var error = await ManagedByond.Connect(_byondVersion!, w.Url, _settings.JoinThroughPager ? null : _session.WebId!, progress);
+            if (error == ManagedByond.ClosedEarly && !_settings.JoinThroughPager)
+            {
+                Overlay("Trying again with BYOND's own sign-in…");
+                error = await ManagedByond.Connect(_byondVersion!, w.Url, null, progress);
+                if (error == null) { _settings.JoinThroughPager = true; _settings.Save(); }
+            }
             Overlay(null);
             ServerStatus.Text = error ?? "Game opened.";
             if (error != null) await Ask("Couldn't Join", error, null, "OK");

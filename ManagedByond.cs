@@ -49,8 +49,9 @@ public static class ManagedByond
     // (checked at launch unless the player turned that off). Keeps working offline with what is installed.
     public static async Task<string> Prepare(string? chosen, bool checkForUpdates, IProgress<string>? progress = null)
     {
-        if (!Process.GetProcessesByName("dreamseeker").Any(p => { try { return p.MainModule?.FileName?.StartsWith(Root, StringComparison.OrdinalIgnoreCase) == true; } catch (Exception) { return false; } }))
-            PurgeWebCaches(WebView2Data);
+        var running = Own("dreamseeker");
+        if (running.Length == 0) PurgeWebCaches(WebView2Data);
+        foreach (var p in running) p.Dispose();
         if (chosen != null && IsVersion(chosen)) return await Install(chosen, progress);
         if (!checkForUpdates && InstalledVersion is { } have) return have;
         string latest;
@@ -160,38 +161,76 @@ public static class ManagedByond
         finally { foreach (var p in procs) p.Dispose(); }
     }
 
-    // DreamSeeker's own windows before the game: "Loading game information...", "BYOND: Your Game Is Starting".
+    // The launcher's own copies of a BYOND process (a process whose path can't be read is elevated, so not ours).
+    static Process[] Own(string name) => Process.GetProcessesByName(name).Where(p =>
+    {
+        try { if (p.MainModule?.FileName?.StartsWith(Root, StringComparison.OrdinalIgnoreCase) == true) return true; }
+        catch (Exception) { }
+        p.Dispose();
+        return false;
+    }).ToArray();
+
+    // BYOND's windows before the game: "Loading game information...", "BYOND: Your Game Is Starting".
     static bool IsGameTitle(string title) => title.Length > 0 && !title.StartsWith("BYOND") && !title.StartsWith("Loading");
 
-    // Join by starting the launcher's DreamSeeker with the world address (plus the web session id from DMG's Play link).
-    // DreamSeeker brings up BYOND's pager itself (minimised), signs in, and runs BYOND's normal "Your Game Is Starting"
-    // screen, including the non-member wait. Only once the game window is open is the pager closed, so the wait always
-    // runs to completion and nothing of BYOND's is modified or skipped.
+    public const string ClosedEarly = "BYOND closed before the game opened. If BYOND showed a message, it says why.";
+
+    // Two ways in, both BYOND's own:
+    // - With the web session id from DMG's Play link: the launcher's DreamSeeker gets the world address plus that id and
+    //   signs in from it, quietly. Where BYOND's pager signs itself in with a saved login, that login can end the
+    //   byond.com session, so the id arrives dead and DreamSeeker joins as a guest, which DMG refuses.
+    // - Without (webId null): the world address goes to the launcher's pager (byond.exe), the same thing a byond:// link
+    //   does. It signs in with its saved login, or shows BYOND's own Login window for the player, then opens the game.
+    // Either way BYOND runs its normal "Your Game Is Starting" screen, including the non-member wait. Only once the game
+    // window is open is the pager closed, so nothing of BYOND's is skipped.
     // Returns null once the game window is open, otherwise what went wrong.
-    public static async Task<string?> Connect(string version, string worldUrl, string webId, IProgress<string>? progress = null)
+    public static async Task<string?> Connect(string version, string worldUrl, string? webId, IProgress<string>? progress = null)
     {
         if (!Byond.IsJoinable(worldUrl)) throw new ArgumentException($"not a BYOND world address: {worldUrl}");
-        if (!Regex.IsMatch(webId, "^[0-9a-fA-F]+$")) throw new ArgumentException("invalid BYOND web session id");
+        if (webId != null && !Regex.IsMatch(webId, "^[0-9a-fA-F]+$")) throw new ArgumentException("invalid BYOND web session id");
 
         Directory.CreateDirectory(WebView2Data);
-        using var seeker = Process.Start(Start(Path.Combine(Bin(version), "dreamseeker.exe"), $"{worldUrl.TrimEnd('/')}##webid={webId}"))
-                           ?? throw new InvalidOperationException("DreamSeeker did not start");
-        progress?.Report("BYOND is starting your game…");
+        var (exe, address) = webId == null
+            ? ("byond.exe", worldUrl.TrimEnd('/'))
+            : ("dreamseeker.exe", $"{worldUrl.TrimEnd('/')}##webid={webId}");
+        ByondWeb.Log(webId == null ? "Joining through BYOND's pager and its own sign-in" : "Joining with the web session");
+        using var started = Process.Start(Start(Path.Combine(Bin(version), exe), address))
+                            ?? throw new InvalidOperationException("BYOND did not start");
+        progress?.Report(webId == null ? "BYOND is starting your game (sign in there if BYOND asks)…" : "BYOND is starting your game…");
 
-        // The non-member wait comes first, so allow well beyond it.
+        // The non-member wait (or BYOND's Login window) comes first, so allow well beyond it. Every DreamSeeker of the
+        // launcher's copy is watched and each change logged. It's a failure once DreamSeeker has come and gone, or
+        // nothing of BYOND's is left running.
         var opened = false;
+        var exitLogged = false;
+        var seen = false;
+        var goneFor = 0;
+        string? last = null;
         for (var i = 0; i < 180 && !opened; i++)
         {
             await Task.Delay(1000);
-            seeker.Refresh();
-            if (seeker.HasExited)
+            started.Refresh();
+            if (started.HasExited && !exitLogged)
             {
-                ByondWeb.Log($"DreamSeeker exited early, code 0x{seeker.ExitCode:X8}");
-                return seeker.ExitCode == unchecked((int)0xC0000135) // STATUS_DLL_NOT_FOUND
-                    ? "BYOND couldn't start because a Windows component it needs is missing (error 0xC0000135)."
-                    : $"BYOND closed before the game opened (exit code 0x{seeker.ExitCode:X8}).";
+                exitLogged = true;
+                ByondWeb.Log($"{exe} {started.Id} exited, code 0x{started.ExitCode:X8}");
+                if (started.ExitCode == unchecked((int)0xC0000135)) // STATUS_DLL_NOT_FOUND
+                    return "BYOND couldn't start because a Windows component it needs is missing (error 0xC0000135).";
             }
-            opened = IsGameTitle(seeker.MainWindowTitle);
+            var seekers = Own("dreamseeker");
+            var pagers = Own("byond");
+            try
+            {
+                var state = $"DreamSeekers: {(seekers.Length == 0 ? "none" : string.Join(", ", seekers.Select(p => $"{p.Id} \"{p.MainWindowTitle}\"")))}; " +
+                            $"pager {(pagers.Length > 0 ? "running" : "not running")}";
+                if (state != last) ByondWeb.Log(state);
+                last = state;
+                opened = seekers.Any(p => IsGameTitle(p.MainWindowTitle));
+                seen |= seekers.Length > 0;
+                goneFor = seekers.Length == 0 && (seen || pagers.Length == 0) ? goneFor + 1 : 0;
+            }
+            finally { foreach (var p in seekers.Concat(pagers)) p.Dispose(); }
+            if (goneFor >= 10) return ClosedEarly;
         }
         if (!opened) return "The game did not open within 3 minutes.";
 
@@ -204,9 +243,8 @@ public static class ManagedByond
     // Closes only the launcher's own pager (an installed BYOND is never touched).
     static void ClosePager()
     {
-        foreach (var p in Process.GetProcessesByName("byond"))
+        foreach (var p in Own("byond"))
             using (p)
-                try { if (p.MainModule?.FileName.StartsWith(Root, StringComparison.OrdinalIgnoreCase) == true) p.Kill(); }
-                catch (Exception) { } // elevated = not ours
+                try { p.Kill(); } catch (Exception) { } // already gone
     }
 }

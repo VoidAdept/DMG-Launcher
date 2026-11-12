@@ -175,28 +175,24 @@ public static class ManagedByond
 
     public const string ClosedEarly = "BYOND closed before the game opened. If BYOND showed a message, it says why.";
 
-    // Two ways in, both BYOND's own:
-    // - With the web session id from DMG's Play link: the launcher's DreamSeeker gets the world address plus that id and
-    //   signs in from it, quietly. Where BYOND's pager signs itself in with a saved login, that login can end the
-    //   byond.com session, so the id arrives dead and DreamSeeker joins as a guest, which DMG refuses.
-    // - Without (webId null): the world address goes to the launcher's pager (byond.exe), the same thing a byond:// link
-    //   does. It signs in with its saved login, or shows BYOND's own Login window for the player, then opens the game.
-    // Either way BYOND runs its normal "Your Game Is Starting" screen, including the non-member wait. Only once the game
-    // window is open is the pager closed, so nothing of BYOND's is skipped.
+    // Join the way a byond:// link does: the world address goes to the launcher's own pager (byond.exe). The pager is what
+    // signs in to BYOND: with the login it has saved on this PC, or by showing BYOND's own Login window for the player.
+    // It then runs BYOND's normal "Your Game Is Starting" screen (including the non-member wait) and opens the game in
+    // DreamSeeker. Only once the game window is open is the pager closed, so nothing of BYOND's is skipped.
+    // What doesn't work (tested against a local world, 2026-11-12): DreamSeeker started directly ignores a ##webid= web
+    // session id and joins as a guest unless a signed-in pager happens to be there; and the pager given a ##webid= opens
+    // signed out and asks for a login even when it has one saved. A byond.com sign-in does not sign BYOND in.
     // Returns null once the game window is open, otherwise what went wrong.
-    public static async Task<string?> Connect(string version, string worldUrl, string? webId, IProgress<string>? progress = null)
+    public static async Task<string?> Connect(string version, string worldUrl, IProgress<string>? progress = null)
     {
         if (!Byond.IsJoinable(worldUrl)) throw new ArgumentException($"not a BYOND world address: {worldUrl}");
-        if (webId != null && !Regex.IsMatch(webId, "^[0-9a-fA-F]+$")) throw new ArgumentException("invalid BYOND web session id");
 
         Directory.CreateDirectory(WebView2Data);
-        var (exe, address) = webId == null
-            ? ("byond.exe", worldUrl.TrimEnd('/'))
-            : ("dreamseeker.exe", $"{worldUrl.TrimEnd('/')}##webid={webId}");
-        ByondWeb.Log(webId == null ? "Joining through BYOND's pager and its own sign-in" : "Joining with the web session");
-        using var started = Process.Start(Start(Path.Combine(Bin(version), exe), address))
+        const string exe = "byond.exe";
+        ByondWeb.Log("Joining through BYOND's pager");
+        using var started = Process.Start(Start(Path.Combine(Bin(version), exe), worldUrl.TrimEnd('/')))
                             ?? throw new InvalidOperationException("BYOND did not start");
-        progress?.Report(webId == null ? "BYOND is starting your game (sign in there if BYOND asks)…" : "BYOND is starting your game…");
+        progress?.Report("BYOND is starting your game. If BYOND asks you to log in, sign in there…");
 
         // The non-member wait (or BYOND's Login window) comes first, so allow well beyond it. Every DreamSeeker of the
         // launcher's copy is watched and each change logged. It's a failure once DreamSeeker has come and gone, or

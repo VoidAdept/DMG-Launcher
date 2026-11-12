@@ -26,7 +26,6 @@ public class Settings
     public bool CheckUpdatesOnStart { get; set; } = true;
     public bool CheckByondUpdatesOnStart { get; set; } = true;
     public string? ByondVersion { get; set; } // null = latest public release
-    public bool JoinThroughPager { get; set; } // set once a join only worked with BYOND's own sign-in (see Join)
     [JsonIgnore] public List<StoredKey> Keys { get; set; } = [];
     [JsonIgnore] public string? LastKey { get; set; }
 
